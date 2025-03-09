@@ -299,6 +299,11 @@
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="tab" href="#statistics"><i class="fas fa-chart-bar"></i> Statistiques</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#backupModal">
+                            <i class="fas fa-save"></i> Sauvegarde
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -900,7 +905,26 @@
             PRODUCTS: 'diplomate_products',
             SALES: 'diplomate_sales'
         },
-        
+        backupData: function() {
+            return {
+                products: this.getProducts(),
+                sales: this.getSales(),
+                version: "1.0",
+                date: new Date().toISOString()
+            };
+        },
+
+        restoreData: function(backupData) {
+            if (backupData.products && Array.isArray(backupData.products)) {
+                this.saveProducts(backupData.products);
+            }
+            
+            if (backupData.sales && Array.isArray(backupData.sales)) {
+                this.saveSales(backupData.sales);
+            }
+            
+            return true;
+        },
         // Produits
         getProducts: function() {
             const products = localStorage.getItem(this.STORAGE_KEYS.PRODUCTS);
@@ -1128,7 +1152,91 @@
             this.setupEventListeners();
             setTimeout(() => this.initQRScanner(), 500);
         },
-        
+        backupData: function() {
+            const backupData = Model.backupData();
+            
+            // Convertir en JSON string
+            const jsonData = JSON.stringify(backupData);
+            
+            // Créer un blob et un lien de téléchargement
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Créer un lien temporaire et déclencher le téléchargement
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Sauvegarde_Le_Diplomate_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Nettoyer
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            this.showToast('Sauvegarde téléchargée avec succès');
+        },
+
+        restoreData: function(file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    
+                    // Validation minimale
+                    if (!backupData.products || !backupData.sales) {
+                        this.showToast('Format de sauvegarde invalide', 'error');
+                        return;
+                    }
+                    
+                    // Fermer d'abord le modal de sauvegarde/restauration
+                    const backupModal = bootstrap.Modal.getInstance(document.getElementById('backupModal'));
+                    if (backupModal) {
+                        backupModal.hide();
+                    }
+                    
+                    // Ensuite afficher la confirmation après un court délai
+                    setTimeout(() => {
+                        this.showConfirmDialog(
+                            'Restauration de données',
+                            'Cette action remplacera toutes vos données actuelles. Continuer ?',
+                            () => {
+                                const success = Model.restoreData(backupData);
+                                
+                                if (success) {
+                                    this.showToast('Données restaurées avec succès');
+                                    
+                                    // Rafraîchir toute l'interface
+                                    this.refreshProductTable();
+                                    this.refreshSalesHistory();
+                                    this.refreshStatistics();
+                                    this.updateStatisticsFilters();
+                                    
+                                    // Rafraîchir complètement la page après un court délai
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1500);
+                                } else {
+                                    this.showToast('Erreur lors de la restauration', 'error');
+                                }
+                            }
+                        );
+                    }, 300);
+                } catch (error) {
+                    console.error('Erreur lors de la restauration:', error);
+                    this.showToast('Format de fichier invalide', 'error');
+                }
+            };
+            
+            reader.onerror = () => {
+                this.showToast('Erreur de lecture du fichier', 'error');
+            };
+            
+            reader.readAsText(file);
+        },
+
         validateSale: function() {
             if (this.cartItems.length === 0) {
                 this.showToast('Le panier est vide', 'warning');
@@ -2639,6 +2747,22 @@
             document.getElementById('scanQrBtn').addEventListener('click', () => {
                 const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
                 modal.show();
+            });
+            // Sauvegarde et restauration
+            document.getElementById('backupBtn').addEventListener('click', () => {
+                this.backupData();
+            });
+
+            document.getElementById('restoreBtn').addEventListener('click', () => {
+                const fileInput = document.getElementById('restoreFile');
+                if (fileInput.files.length === 0) {
+                    this.showToast('Aucun fichier sélectionné', 'warning');
+                    return;
+                }
+                // Stocker la référence au fichier car elle sera perdue après la fermeture du modal
+                const fileToRestore = fileInput.files[0];
+                
+                this.restoreData(fileToRestore);
             });
             
             // Recherche de produits pour le panier
