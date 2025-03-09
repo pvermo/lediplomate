@@ -1,0 +1,3654 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Diplomate - Gestion de Cigares</title>
+    <!-- Bootstrap CSS (from CDN) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (from CDN) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- QR Code generator (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- SheetJS for Excel (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <!-- html2canvas for preview (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF for PDF generation (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Custom styles */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #95a5a6;
+            --accent-color: #d35400;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-color);
+            color: var(--dark-color);
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .nav-link.active {
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-accent {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        /* Pour les tablettes et mobiles */
+        @media (max-width: 991.98px) {
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.5rem;
+            }
+        }
+        
+        /* Spécifique mobile */
+        @media (max-width: 767.98px) {
+            .navbar-brand {
+                font-size: 1.2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .card-header {
+                padding: 0.5rem 1rem;
+            }
+            
+            .table td, .table th {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Styles pour les étiquettes */
+        .label-preview {
+            border: 1px solid #ccc;
+            width: 100%;
+            aspect-ratio: 3/2;
+            background-color: white;
+            padding: 10px;
+            position: relative;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .label-qrcode {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 70px;
+            height: 70px;
+        }
+        
+        .label-price {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .label-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .label-details {
+            font-size: 10px;
+            margin-top: 5px;
+        }
+        
+        .intensity-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 2px;
+            background-color: #ccc;
+        }
+        
+        .intensity-filled {
+            background-color: var(--accent-color);
+        }
+        
+        /* Animation de chargement */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Styles des étiquettes inspirés du générateur autonome */
+        :root {
+            --primary-brown: #8B4513;
+            --secondary-brown: #6D4C41;
+            --text-dark-brown: #4E2A14;
+            --background-light: #FAF6F1;
+            --border-color: #8B4513;
+            --accent-color: #d35400; /* Conserver la couleur d'accent existante */
+        }
+
+        /* Styles pour les étiquettes */
+        .label-preview {
+            width: 270px; 
+            height: 212px;
+            margin: 10px;
+            padding: 12px;
+            background-color: var(--background-light);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            page-break-inside: avoid;
+            font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+            color: var(--text-dark-brown);
+        }
+
+        .label-title {
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: none;
+            padding-bottom: 6px;
+            padding-right: 80px;
+        }
+
+        .label-brand {
+            font-size: 12px;
+            color: var(--secondary-brown);
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            display: block;
+        }
+
+        .label-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-dark-brown);
+            display: block;
+        }
+
+        .label-details {
+            margin: 4px 0;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .label-details strong {
+            color: var(--text-dark-brown);
+        }
+
+        .label-price {
+            position: absolute;
+            bottom: 8px;
+            right: 15px;
+            width: 75px;
+            box-sizing: border-box;
+            background-color: var(--primary-brown);
+            color: white;
+            padding: 3px 0;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .label-qrcode {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 75px;
+            height: 75px;
+            background-color: var(--background-light);
+            padding: 3px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .intensity-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 2px;
+            background-color: #ccc;
+        }
+
+        .intensity-filled {
+            background-color: var(--primary-brown);
+        }
+
+        /* Styles d'impression */
+        @media print {
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            #labelsContainer, #labelsContainer * {
+                visibility: visible;
+            }
+            
+            #labelsContainer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            
+            .label-preview {
+                border: 1px solid var(--border-color) !important;
+                background-color: var(--background-light) !important;
+                color: var(--text-dark-brown) !important;
+                page-break-inside: avoid;
+            }
+            
+            .label-qrcode {
+                width: 2cm !important;
+                height: 2cm !important;
+            }
+            
+            .label-qrcode img {
+                width: 100% !important;
+                height: 100% !important;
+            }
+            
+            .label-price {
+                background-color: var(--primary-brown) !important;
+                color: white !important;
+            }
+            
+            .label-brand {
+                color: var(--secondary-brown) !important;
+            }
+            
+            .label-name {
+                color: var(--text-dark-brown) !important;
+            }
+            
+            .label-details strong {
+                color: var(--text-dark-brown) !important;
+            }
+            
+            .intensity-filled {
+                background-color: var(--primary-brown) !important;
+            }
+        }
+        /* Ajustements pour les indicateurs de force */
+        .intensity-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 2px;
+            background-color: #ccc;
+        }
+
+        .intensity-filled {
+            background-color: var(--primary-brown);
+        }
+
+        /* Ajustements pour la section des détails */
+        .label-details {
+            margin: 2px 0;
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .label-details p {
+            margin: 2px 0;
+        }
+
+        /* Assurer que tout le contenu tient dans l'étiquette */
+        .label-preview {
+            overflow: hidden;
+        }
+        /* Styles pour le système d'étiquettes interactif */
+        .add-label-btn {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .add-label-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .list-group-item {
+            transition: background-color 0.2s ease;
+        }
+
+        /* Style pour centrer correctement les étiquettes */
+        #labelsContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #labelsContainer .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin: 0 -10px;
+        }
+
+        /* Masquer le message "vide" quand des étiquettes sont présentes */
+        #labelsContainer:not(:empty) + #emptyLabelsMessage {
+            display: none;
+        }
+
+        /* Animation pour l'ajout d'étiquettes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .label-preview {
+            animation: fadeIn 0.3s ease-in-out;
+            position: relative;
+        }
+
+        /* Style pour le bouton de suppression */
+        .label-preview .btn-danger {
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .label-preview:hover .btn-danger {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Le Diplomate</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#sales"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#inventory"><i class="fas fa-boxes"></i> Produits</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#statistics"><i class="fas fa-chart-bar"></i> Statistiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#labels"><i class="fas fa-tags"></i> Étiquettes</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <div class="container mt-4">
+        <div class="tab-content">
+            <!-- Module VENTES -->
+            <div class="tab-pane fade show active" id="sales">
+                <div class="row">
+                    <!-- Panier de vente -->
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Panier</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-light" id="scanQrBtn">
+                                        <i class="fas fa-qrcode"></i> Scanner
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                        <i class="fas fa-search"></i> Rechercher
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3 row">
+                                    <div class="col-md-4 mb-2">
+                                        <input type="text" class="form-control form-control-sm" id="cartSearch" placeholder="Recherche rapide...">
+                                    </div>
+                                    <div class="col-md-8 mb-2">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary" id="sortByBrand">Marque</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="sortByOrigin">Origine</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="sortBySupplier">Fournisseur</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm" id="cartTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Marque</th>
+                                                <th>Nom</th>
+                                                <th>Origine</th>
+                                                <th>Fournisseur</th>
+                                                <th>Prix</th>
+                                                <th>Stock</th>
+                                                <th>Qté</th>
+                                                <th>Total</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Les produits du panier seront insérés ici -->
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="7" class="text-end fw-bold">Total :</td>
+                                                <td class="fw-bold" id="cartTotal">0.00 €</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                    <button class="btn btn-outline-danger" id="clearCartBtn">
+                                        <i class="fas fa-trash"></i> Vider le panier
+                                    </button>
+                                    <button class="btn btn-accent" id="validateSaleBtn">
+                                        <i class="fas fa-check"></i> Valider la vente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Historique des ventes -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Historique</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-filter"></i> Filtrer
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" id="filterToday">Aujourd'hui</a></li>
+                                        <li><a class="dropdown-item" href="#" id="filterWeek">Cette semaine</a></li>
+                                        <li><a class="dropdown-item" href="#" id="filterMonth">Ce mois</a></li>
+                                        <li><a class="dropdown-item" href="#" id="filterAll">Tout l'historique</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <button class="btn btn-sm btn-outline-warning" id="cancelLastSaleBtn">
+                                        <i class="fas fa-undo"></i> Annuler dernière vente
+                                    </button>
+                                </div>
+                                <div class="list-group" id="salesHistory">
+                                    <!-- L'historique des ventes sera inséré ici -->
+                                    <div class="text-center text-muted">
+                                        <i>Aucune vente enregistrée</i>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2 mt-3">
+                                    <button class="btn btn-outline-danger btn-sm" id="clearHistoryBtn">
+                                        <i class="fas fa-trash-alt"></i> Effacer l'historique
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Module PRODUITS -->
+            <div class="tab-pane fade" id="inventory">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Gestion des produits</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importExportModal">
+                                <i class="fas fa-file-excel"></i> Import/Export
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addEditProductModal">
+                                <i class="fas fa-plus"></i> Nouveau produit
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3 row">
+                            <div class="col-md-6 mb-2">
+                                <input type="text" class="form-control" id="productSearch" placeholder="Rechercher un produit...">
+                            </div>
+                            <div class="col-md-6 mb-2 text-md-end">
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-danger" id="resetStockBtn">
+                                        <i class="fas fa-eraser"></i> Réinitialiser stock
+                                    </button>
+                                    <button class="btn btn-outline-danger" id="deleteAllProductsBtn">
+                                        <i class="fas fa-trash"></i> Supprimer tout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- À ajouter dans l'onglet produits après les filtres et avant la table -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <strong>Total cigares en stock:</strong> <span id="totalCigarsCount">0</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <strong>Valeur totale du stock:</strong> <span id="totalStockValue">0.00 €</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="productsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Marque</th>
+                                        <th>Nom</th>
+                                        <th>Origine</th>
+                                        <th>Vitole</th>
+                                        <th>Cape</th>
+                                        <th>Sous-cape</th>
+                                        <th>Tripe</th>
+                                        <th>Force</th>
+                                        <th>Stock</th>
+                                        <th>Prix</th>
+                                        <th>Fournisseur</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Les produits seront insérés ici -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Module STATISTIQUES -->
+            <div class="tab-pane fade" id="statistics">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Filtres</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Période</label>
+                                    <select class="form-select" id="statsPeriod">
+                                        <option value="day">Aujourd'hui</option>
+                                        <option value="week">Cette semaine</option>
+                                        <option value="month" selected>Ce mois</option>
+                                        <option value="year">Cette année</option>
+                                        <option value="all">Tout</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Marque</label>
+                                    <select class="form-select" id="statsBrand">
+                                        <option value="all" selected>Toutes</option>
+                                        <!-- Les marques seront insérées ici -->
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Fournisseur</label>
+                                    <select class="form-select" id="statsSupplier">
+                                        <option value="all" selected>Tous</option>
+                                        <!-- Les fournisseurs seront insérés ici -->
+                                    </select>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" id="exportStatsBtn">
+                                        <i class="fas fa-file-excel"></i> Exporter les statistiques
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Ventes par produit</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="productSalesChart" height="250"></canvas>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Top fournisseurs</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="supplierChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Résumé</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="list-group">
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                Total des ventes
+                                                <span class="badge bg-primary rounded-pill" id="statsTotalSales">0</span>
+                                            </div>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                Montant total
+                                                <span class="badge bg-primary rounded-pill" id="statsTotalAmount">0.00 €</span>
+                                            </div>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                Produit le plus vendu
+                                                <span class="badge bg-primary rounded-pill" id="statsTopProduct">N/A</span>
+                                            </div>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                Meilleur fournisseur
+                                                <span class="badge bg-primary rounded-pill" id="statsTopSupplier">N/A</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Module ÉTIQUETTES -->
+            <div class="tab-pane fade" id="labels">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Sélection des produits</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="labelSearch" placeholder="Rechercher un produit...">
+                                </div>
+                                <div class="list-group" id="labelProductsList" style="max-height: 400px; overflow-y: auto;">
+                                    <!-- Les produits pour étiquettes seront insérés ici -->
+                                </div>
+                                <!-- Nouveau bouton pour générer les étiquettes -->
+                                <div class="mt-3">
+                                    <button class="btn btn-primary w-100" id="generateLabelsBtn">
+                                        <i class="fas fa-tag"></i> Générer les étiquettes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Étiquettes (<span id="labelCount">0</span>)</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" id="clearLabelsBtn">
+                                        <i class="fas fa-trash"></i> Tout effacer
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-light" id="printLabelsBtn">
+                                        <i class="fas fa-print"></i> Imprimer
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="labelsContainer">
+                                    <!-- Les étiquettes seront insérées ici -->
+                                </div>
+                                <div id="emptyLabelsMessage" class="text-center text-muted py-5">
+                                    <i class="fas fa-tags fa-3x mb-3"></i>
+                                    <p>Cliquez sur les boutons + pour ajouter des étiquettes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Modal d'ajout de produit au panier -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un produit au panier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="searchProductForCart" placeholder="Rechercher un cigare...">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm" id="searchProductTable">
+                            <thead>
+                                <tr>
+                                    <th>Marque</th>
+                                    <th>Nom</th>
+                                    <th>Origine</th>
+                                    <th>Stock</th>
+                                    <th>Prix</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Les résultats de recherche seront insérés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'ajout/modification de produit -->
+    <div class="modal fade" id="addEditProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalTitle">Ajouter un produit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <input type="hidden" id="productId">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Marque</label>
+                                <input type="text" class="form-control" id="productBrand" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nom du cigare</label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Pays d'origine</label>
+                                <input type="text" class="form-control" id="productOrigin" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Vitole</label>
+                                <input type="text" class="form-control" id="productVitola" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Cape</label>
+                                <input type="text" class="form-control" id="productWrapper" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sous-cape</label>
+                                <input type="text" class="form-control" id="productBinder" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tripe</label>
+                                <input type="text" class="form-control" id="productFiller" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Force / Intensité</label>
+                                <select class="form-control" id="productStrength" required>
+                                    <option value="Légère">Légère</option>
+                                    <option value="Légère-Moyenne">Légère-Moyenne</option>
+                                    <option value="Moyenne">Moyenne</option>
+                                    <option value="Moyenne-Forte">Moyenne-Forte</option>
+                                    <option value="Forte">Forte</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Quantité</label>
+                                <input type="number" class="form-control" id="productQuantity" min="0" value="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Prix (€)</label>
+                                <input type="number" class="form-control" id="productPrice" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fournisseur</label>
+                            <input type="text" class="form-control" id="productSupplier" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="saveProductBtn">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'import/export Excel -->
+    <div class="modal fade" id="importExportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import / Export Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h6>Importer des produits</h6>
+                        <p class="small text-muted">Sélectionnez un fichier Excel avec les colonnes correspondantes aux champs des produits.</p>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="importFile" accept=".xlsx,.xls">
+                            <button class="btn btn-primary" id="importBtn">Importer</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h6>Exporter les produits</h6>
+                        <p class="small text-muted">Téléchargez tous les produits au format Excel.</p>
+                        <button class="btn btn-primary w-100" id="exportBtn">
+                            <i class="fas fa-download"></i> Exporter en Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de détail d'une vente -->
+    <div class="modal fade" id="saleDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détail de la vente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <p><strong>Date:</strong> <span id="saleDetailDate"></span></p>
+                        <p><strong>Montant total:</strong> <span id="saleDetailTotal"></span></p>
+                    </div>
+                    <h6>Produits</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped" id="saleDetailTable">
+                            <thead>
+                                <tr>
+                                    <th>Marque</th>
+                                    <th>Nom</th>
+                                    <th>Prix</th>
+                                    <th>Qté</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Les détails de la vente seront insérés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" id="deleteSaleBtn">Supprimer cette vente</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner QR Code Modal -->
+    <div class="modal fade" id="scannerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Scanner un QR Code</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>Placez le QR Code devant la caméra</p>
+                    <video id="qrScanner" style="width: 100%; max-width: 300px; border: 1px solid #ccc;"></video>
+                    <p class="mt-2 small text-muted">Assurez-vous que l'éclairage est suffisant</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmTitle">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmMessage">
+                    Êtes-vous sûr de vouloir continuer?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirmButton">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de sauvegarde/restauration -->
+    <div class="modal fade" id="backupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sauvegarde & Restauration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h6>Sauvegarder les données</h6>
+                        <p class="small text-muted">Téléchargez une sauvegarde complète de toutes les données (produits et ventes)</p>
+                        <button class="btn btn-primary w-100" id="backupBtn">
+                            <i class="fas fa-download"></i> Télécharger la sauvegarde
+                        </button>
+                    </div>
+                    <div>
+                        <h6>Restaurer les données</h6>
+                        <p class="small text-muted">Attention: cette action remplacera toutes les données actuelles!</p>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="restoreFile" accept=".json">
+                            <button class="btn btn-warning" id="restoreBtn">Restaurer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+        <div id="appToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Bootstrap JS (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- QR Code Scanner Library (from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.7/html5-qrcode.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script>
+    // ********************
+    // ARCHITECTURE MVVM
+    // ********************
+
+    // *** MODEL ***
+    // Gestion des données et interactions avec localStorage
+    const Model = {
+        // Clés de stockage
+        STORAGE_KEYS: {
+            PRODUCTS: 'diplomate_products',
+            SALES: 'diplomate_sales'
+        },
+        
+        // Produits
+        getProducts: function() {
+            const products = localStorage.getItem(this.STORAGE_KEYS.PRODUCTS);
+            return products ? JSON.parse(products) : [];
+        },
+        
+        saveProducts: function(products) {
+            localStorage.setItem(this.STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        },
+        
+        addProduct: function(product) {
+            const products = this.getProducts();
+            
+            // Générer un ID unique pour le produit
+            product.id = Date.now().toString();
+            
+            // S'assurer qu'il y a un ID personnalisé
+            if (!product.customId) {
+                product.customId = product.id;
+            }
+            
+            products.push(product);
+            this.saveProducts(products);
+            return product;
+        },
+        
+        updateProduct: function(updatedProduct) {
+            const products = this.getProducts();
+            const index = products.findIndex(p => p.id === updatedProduct.id);
+            if (index !== -1) {
+                products[index] = updatedProduct;
+                this.saveProducts(products);
+                return true;
+            }
+            return false;
+        },
+        
+        deleteProduct: function(productId) {
+            const products = this.getProducts();
+            const newProducts = products.filter(p => p.id !== productId);
+            if (newProducts.length < products.length) {
+                this.saveProducts(newProducts);
+                return true;
+            }
+            return false;
+        },
+        
+        findProductById: function(productId) {
+            // Si l'ID semble être une combinaison marque-nom (contient un tiret)
+            if (productId.includes('-')) {
+                const products = this.getProducts();
+                const [brand, name] = productId.split('-').map(part => part.trim());
+                
+                // Rechercher par marque et nom
+                const product = products.find(p => 
+                    p.brand.toLowerCase() === brand.toLowerCase() && 
+                    p.name.toLowerCase() === name.toLowerCase()
+                );
+                
+                if (product) {
+                    console.log(`Produit trouvé par clé composite marque-nom: ${brand} - ${name}`);
+                    return product;
+                }
+            }
+            
+            // Sinon, recherche standard par ID
+            const products = this.getProducts();
+            const product = products.find(p => String(p.id).trim() === String(productId).trim());
+            
+            console.log(product ? `Produit trouvé: ${product.brand} ${product.name}` : `Aucun produit trouvé pour ID: ${productId}`);
+            return product;
+        },
+
+        migrateExistingData: function() {
+            // Récupérer tous les produits
+            const products = Model.getProducts();
+            
+            if (products.length === 0) {
+                console.log("Aucun produit à migrer");
+                return;
+            }
+            
+            console.log(`Migration de ${products.length} produits...`);
+            
+            // Ajouter un ID personnalisé aux produits qui n'en ont pas
+            let updatedCount = 0;
+            
+            products.forEach(product => {
+                if (!product.customId) {
+                    product.customId = this.generateCustomId(product.brand, product.name);
+                    Model.updateProduct(product);
+                    updatedCount++;
+                }
+            });
+            
+            console.log(`Migration terminée. ${updatedCount} produits mis à jour.`);
+            
+            // Si nécessaire, rafraîchir l'interface
+            if (updatedCount > 0) {
+                this.refreshProductTable();
+            }
+            
+            return updatedCount;
+        },
+        resetProductStock: function() {
+            const products = this.getProducts();
+            products.forEach(p => p.quantity = 0);
+            this.saveProducts(products);
+        },
+        
+        deleteAllProducts: function() {
+            this.saveProducts([]);
+        },
+        
+        // Ventes
+        getSales: function() {
+            const sales = localStorage.getItem(this.STORAGE_KEYS.SALES);
+            return sales ? JSON.parse(sales) : [];
+        },
+        
+        saveSales: function(sales) {
+            localStorage.setItem(this.STORAGE_KEYS.SALES, JSON.stringify(sales));
+        },
+        
+        addSale: function(sale) {
+            const sales = this.getSales();
+            // Générer un ID unique pour la vente
+            sale.id = Date.now().toString();
+            sale.date = new Date().toISOString();
+            sales.push(sale);
+            this.saveSales(sales);
+            
+            // Mettre à jour les stocks
+            this.updateStockAfterSale(sale);
+            
+            return sale;
+        },
+        
+        updateStockAfterSale: function(sale) {
+            const products = this.getProducts();
+            sale.products.forEach(soldItem => {
+                const productIndex = products.findIndex(p => p.id === soldItem.id);
+                if (productIndex !== -1) {
+                    products[productIndex].quantity -= soldItem.quantity;
+                    // S'assurer que la quantité ne soit pas négative
+                    if (products[productIndex].quantity < 0) {
+                        products[productIndex].quantity = 0;
+                    }
+                }
+            });
+            this.saveProducts(products);
+        },
+        
+        restoreStockFromSale: function(sale) {
+            const products = this.getProducts();
+            sale.products.forEach(soldItem => {
+                const productIndex = products.findIndex(p => p.id === soldItem.id);
+                if (productIndex !== -1) {
+                    products[productIndex].quantity += soldItem.quantity;
+                }
+            });
+            this.saveProducts(products);
+        },
+        
+        deleteSale: function(saleId, restoreStock = true) {
+            const sales = this.getSales();
+            const saleToDelete = sales.find(s => s.id === saleId);
+            
+            if (saleToDelete && restoreStock) {
+                this.restoreStockFromSale(saleToDelete);
+            }
+            
+            const newSales = sales.filter(s => s.id !== saleId);
+            if (newSales.length < sales.length) {
+                this.saveSales(newSales);
+                return true;
+            }
+            return false;
+        },
+        
+        deleteAllSales: function(restoreStock = false) {
+            if (restoreStock) {
+                const sales = this.getSales();
+                sales.forEach(sale => this.restoreStockFromSale(sale));
+            }
+            this.saveSales([]);
+        },
+        
+        // Sauvegarde et restauration
+        backupData: function() {
+            return {
+                products: this.getProducts(),
+                sales: this.getSales(),
+                version: "1.0",
+                date: new Date().toISOString()
+            };
+        },
+        
+        restoreData: function(backupData) {
+            if (backupData.products && Array.isArray(backupData.products)) {
+                this.saveProducts(backupData.products);
+            }
+            
+            if (backupData.sales && Array.isArray(backupData.sales)) {
+                this.saveSales(backupData.sales);
+            }
+            
+            return true;
+        }
+    };
+
+    // *** VIEW MODEL ***
+    // Logique métier et transformation des données pour l'affichage
+    // Variable globale pour accéder au ViewModel
+    let viewModelInstance = null;
+    var ViewModel = {
+        init: function() {
+    // Stocker l'instance pour un accès global
+            viewModelInstance = this;
+            
+            // Initialiser les tableaux d'étiquettes
+            this.selectedLabels = [];
+            this.displayedLabels = [];
+            
+            // Charger les données initiales
+            this.loadInitialData();
+            
+            // Configurer les écouteurs d'événements
+            this.setupEventListeners();
+            this.setupLabelEventListeners(); // Nouveau pour les étiquettes
+        },
+        selectedLabels: [], // Étiquettes sélectionnées mais pas encore affichées
+        displayedLabels: [], // Étiquettes actuellement affichées
+        
+        // Rafraîchir la liste des produits pour les étiquettes
+        refreshLabelProductsList: function() {
+            const products = Model.getProducts();
+            const container = document.getElementById('labelProductsList');
+            container.innerHTML = '';
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i>Aucun produit disponible</i></div>';
+                return;
+            }
+            
+            // Trier par marque puis nom
+            const sortedProducts = [...products].sort((a, b) => {
+                if (a.brand !== b.brand) {
+                    return a.brand.localeCompare(b.brand);
+                }
+                return a.name.localeCompare(b.name);
+            });
+            
+            sortedProducts.forEach(product => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                
+                const isSelected = this.selectedLabels.some(p => p.id === product.id) || 
+                                  this.displayedLabels.some(p => p.id === product.id);
+                if (isSelected) {
+                    item.classList.add('bg-light');
+                }
+                
+                item.innerHTML = `
+                    <div>
+                        <strong>${product.brand}</strong> - ${product.name}
+                        <div><small>${product.origin} | ${product.vitola}</small></div>
+                    </div>
+                    <button class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-primary'} add-label-btn" data-id="${product.id}">
+                        ${isSelected ? '<i class="fas fa-check"></i>' : '<i class="fas fa-plus"></i>'}
+                    </button>
+                `;
+                
+                container.appendChild(item);
+            });
+            
+            // Ajouter les écouteurs d'événements pour les boutons d'ajout
+            const self = this;
+            document.querySelectorAll('.add-label-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = e.currentTarget.dataset.id;
+                    const product = Model.findProductById(productId);
+                    
+                    if (product) {
+                        if (self.selectedLabels.some(p => p.id === product.id) || 
+                            self.displayedLabels.some(p => p.id === product.id)) {
+                            // Déjà sélectionné, ne rien faire
+                            self.showToast("Ce produit est déjà dans les étiquettes", "warning");
+                        } else {
+                            // Ajouter à la sélection et ajouter immédiatement
+                            self.selectedLabels.push(product);
+                            self.addSingleLabel(product);
+                            
+                            // Mettre à jour l'apparence du bouton
+                            button.classList.remove('btn-primary');
+                            button.classList.add('btn-success');
+                            button.innerHTML = '<i class="fas fa-check"></i>';
+                            
+                            self.showToast(`Étiquette ajoutée pour ${product.brand} ${product.name}`);
+                        }
+                    }
+                });
+            });
+        },
+        
+        // Ajouter une seule étiquette à l'aperçu
+        addSingleLabel: function(product) {
+            const container = document.getElementById('labelsContainer');
+            
+            // Créer la ligne si elle n'existe pas encore
+            let currentRow = container.querySelector('.row:last-child');
+            if (!currentRow || currentRow.children.length >= 4) {  // 4 colonnes par rangée maximum
+                currentRow = document.createElement('div');
+                currentRow.className = 'row';
+                container.appendChild(currentRow);
+            }
+            
+            // Créer la colonne pour cette étiquette
+            const labelCol = document.createElement('div');
+            labelCol.className = 'col-6 col-md-3 mb-4';
+            labelCol.dataset.productId = product.id;
+            
+            // Créer l'étiquette
+            const label = document.createElement('div');
+            label.className = 'label-preview position-relative';
+            
+            // Ajouter un bouton de suppression sur l'étiquette
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-sm btn-danger position-absolute';
+            deleteBtn.style.top = '5px';
+            deleteBtn.style.left = '5px';
+            deleteBtn.style.zIndex = '20';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            deleteBtn.addEventListener('click', () => this.removeLabel(product.id));
+            
+            // Calculer les indicateurs d'intensité
+            const intensityLevels = {
+                'Légère': 1,
+                'Légère-Moyenne': 2,
+                'Moyenne': 3,
+                'Moyenne-Forte': 4,
+                'Forte': 5
+            };
+            
+            const intensityLevel = intensityLevels[product.strength] || 3;
+            let intensityHTML = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                intensityHTML += `<span class="intensity-indicator ${i <= intensityLevel ? 'intensity-filled' : ''}"></span>`;
+            }
+            
+            // Contenu de l'étiquette
+            label.innerHTML = `
+                <div class="label-qrcode" id="qrcode-${product.id.replace(/[^a-zA-Z0-9]/g, '')}"></div>
+                <div class="label-title">
+                    <span class="label-brand">${product.brand || ''}</span>
+                    <span class="label-name">${product.name || ''}</span>
+                </div>
+                <div class="label-details">
+                    <p><strong>Pays:</strong> ${product.origin || '--'}</p>
+                    <p><strong>Vitole:</strong> ${product.vitola || '--'}</p>
+                    <p><strong>Cape:</strong> ${product.wrapper || '--'}</p>
+                    <p><strong>Sous-cape:</strong> ${product.binder || '--'}</p>
+                    <p><strong>Tripe:</strong> ${product.filler || '--'}</p>
+                    <p><strong>Force:</strong> ${intensityHTML}</p>
+                </div>
+                <div class="label-price">${this.formatPrice(product.price)}</div>
+            `;
+            
+            // Ajouter l'étiquette à la colonne
+            label.appendChild(deleteBtn);
+            labelCol.appendChild(label);
+            currentRow.appendChild(labelCol);
+            
+            // Générer le QR code
+            setTimeout(() => {
+                try {
+                    const qrElement = document.getElementById(`qrcode-${product.id.replace(/[^a-zA-Z0-9]/g, '')}`);
+                    if (qrElement) {
+                        new QRCode(qrElement, {
+                            text: `${product.brand}-${product.name}`,
+                            width: 75,
+                            height: 75,
+                            colorDark: '#000000',
+                            colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Erreur lors de la génération du QR code pour ${product.brand} ${product.name}:`, error);
+                }
+            }, 50);
+            
+            // Ajouter aux étiquettes affichées
+            this.displayedLabels.push(product);
+            
+            // Afficher des informations dans la console
+            console.log(`Étiquette ajoutée: ${product.brand} ${product.name}`);
+            console.log(`Nombre total d'étiquettes: ${this.displayedLabels.length}`);
+        },
+        
+        // Supprimer une étiquette de l'aperçu
+        removeLabel: function(productId) {
+            // Trouver et supprimer l'élément DOM
+            const labelCol = document.querySelector(`.col-6[data-product-id="${productId}"]`);
+            if (labelCol) {
+                const row = labelCol.parentElement;
+                labelCol.remove();
+                
+                // Si la rangée est vide, la supprimer
+                if (row.children.length === 0) {
+                    row.remove();
+                }
+            }
+            
+            // Mettre à jour les listes
+            this.selectedLabels = this.selectedLabels.filter(p => p.id !== productId);
+            this.displayedLabels = this.displayedLabels.filter(p => p.id !== productId);
+            
+            // Mettre à jour la liste des produits pour refléter le changement
+            this.refreshLabelProductsList();
+            
+            this.showToast("Étiquette supprimée");
+        },
+        
+        // Effacer toutes les étiquettes
+        clearAllLabels: function() {
+            // Demander confirmation
+            this.showConfirmDialog(
+                "Supprimer toutes les étiquettes",
+                "Êtes-vous sûr de vouloir supprimer toutes les étiquettes affichées ?",
+                () => {
+                    const container = document.getElementById('labelsContainer');
+                    container.innerHTML = '';
+                    
+                    // Réinitialiser les listes
+                    this.selectedLabels = [];
+                    this.displayedLabels = [];
+                    
+                    // Mettre à jour l'interface
+                    this.refreshLabelProductsList();
+                    
+                    this.showToast("Toutes les étiquettes ont été supprimées");
+                }
+            );
+        },
+        
+        // Impression des étiquettes
+        printLabels: function() {
+            if (this.displayedLabels.length === 0) {
+                this.showToast('Aucune étiquette à imprimer', 'warning');
+                return;
+            }
+            
+            // Cacher temporairement les boutons de suppression pour l'impression
+            const deleteButtons = document.querySelectorAll('#labelsContainer .btn-danger');
+            deleteButtons.forEach(btn => btn.style.display = 'none');
+            
+            // Configurer le style d'impression
+            const styleElement = document.createElement('style');
+            styleElement.id = 'print-style-element';
+            styleElement.textContent = `
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 10mm;
+                    }
+                    
+                    body * {
+                        visibility: hidden;
+                    }
+                    
+                    #labelsContainer, #labelsContainer * {
+                        visibility: visible;
+                    }
+                    
+                    #labelsContainer {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    
+                    .label-preview {
+                        page-break-inside: avoid;
+                        border: 1px solid #8B4513 !important;
+                    }
+                    
+                    .label-qrcode {
+                        width: 2cm !important;
+                        height: 2cm !important;
+                    }
+                    
+                    .label-qrcode img {
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
+                    
+                    .btn {
+                        display: none !important;
+                    }
+                }
+            `;
+            
+            // Supprimer l'ancien style s'il existe
+            const oldStyle = document.getElementById('print-style-element');
+            if (oldStyle) {
+                oldStyle.remove();
+            }
+            
+            document.head.appendChild(styleElement);
+            
+            // Imprimer
+            window.print();
+            
+            // Restaurer l'affichage des boutons après l'impression
+            setTimeout(() => {
+                deleteButtons.forEach(btn => btn.style.display = 'block');
+            }, 500);
+        },
+        validateSale: function() {
+            if (this.cartItems.length === 0) {
+                this.showToast('Le panier est vide', 'warning');
+                return;
+            }
+            
+            // Créer l'objet vente
+            const sale = {
+                products: this.cartItems,
+                totalAmount: this.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                date: new Date().toISOString()
+            };
+            
+            // Enregistrer la vente
+            Model.addSale(sale);
+            
+            // Vider le panier
+            this.cartItems = [];
+            this.refreshCart();
+            
+            // Mettre à jour l'interface
+            this.refreshSalesHistory();
+            this.refreshProductTable();
+            this.refreshStatistics();
+            
+            this.showToast('Vente enregistrée avec succès');
+        },
+        
+        // Configurer les écouteurs d'événements pour les étiquettes
+        setupLabelEventListeners: function() {
+            document.getElementById('generateLabelsBtn').addEventListener('click', () => {
+                this.generateLabels();
+            });
+            document.getElementById('printLabelsBtn').addEventListener('click', () => this.printLabels());
+            
+            // Ajouter un bouton pour effacer toutes les étiquettes
+            const clearBtn = document.getElementById('clearLabelsBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => this.clearAllLabels());
+            }
+            
+            // Recherche de produits pour étiquettes
+            document.getElementById('labelSearch').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const items = document.querySelectorAll('#labelProductsList .list-group-item');
+                
+                items.forEach(item => {
+                    const content = item.textContent.toLowerCase();
+                    
+                    if (content.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        },
+        loadInitialData: function() {
+            // Charger les données initiales si nécessaire
+            const products = Model.getProducts();
+            if (products.length === 0) {
+                try {
+                    // Si aucun produit n'existe, essayons de charger le fichier Excel d'exemple
+                    this.importSampleData();
+                } catch (error) {
+                    console.error("Impossible de charger les données d'exemple:", error);
+                }
+            }
+            
+            // Mettre à jour l'interface
+            this.refreshProductTable();
+            this.refreshSalesHistory();
+            this.refreshStatistics();
+            this.refreshLabelProductsList();
+        },
+        
+        importSampleData: function() {
+            // Cette fonction peut être utilisée pour charger des données d'exemple
+            // si aucun produit n'existe encore dans l'application
+            console.log("Aucune donnée d'exemple à charger pour le moment.");
+        },
+        
+        // Fonctions utilitaires
+        formatPrice: function(price) {
+            // Convertir en nombre si ce n'est pas déjà le cas
+            const numPrice = Number(price);
+            // Formater avec 2 décimales et le symbole €
+            return numPrice.toFixed(2) + ' €';
+        },
+        
+        formatDate: function(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        
+        showToast: function(message, type = 'success') {
+            // Configurer le toast
+            const toastEl = document.getElementById('appToast');
+            const toastMsg = document.getElementById('toastMessage');
+            
+            // Réinitialiser les classes de couleur
+            toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+            
+            // Appliquer la couleur en fonction du type
+            switch (type) {
+                case 'error':
+                    toastEl.classList.add('bg-danger');
+                    break;
+                case 'warning':
+                    toastEl.classList.add('bg-warning');
+                    break;
+                case 'info':
+                    toastEl.classList.add('bg-info');
+                    break;
+                default:
+                    toastEl.classList.add('bg-success');
+            }
+            
+            // Définir le message
+            toastMsg.textContent = message;
+            
+            // Afficher le toast
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        },
+        
+        showConfirmDialog: function(title, message, callback) {
+            const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            
+            // Nettoyer les anciens écouteurs d'événements
+            const confirmBtn = document.getElementById('confirmButton');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            // Ajouter le nouvel écouteur
+            newConfirmBtn.addEventListener('click', () => {
+                modal.hide();
+                callback();
+            });
+            
+            modal.show();
+        },
+        
+        // Gestion des produits
+        refreshProductTable: function() {
+            const products = Model.getProducts();
+            const tableBody = document.querySelector('#productsTable tbody');
+            tableBody.innerHTML = '';
+            
+            // Calculer les totaux
+            let totalCigars = 0;
+            let totalValue = 0;
+            
+            products.forEach(product => {
+                totalCigars += product.quantity;
+                totalValue += product.quantity * product.price;
+            });
+            
+            // Afficher les totaux
+            document.getElementById('totalCigarsCount').textContent = totalCigars;
+            document.getElementById('totalStockValue').textContent = this.formatPrice(totalValue);
+            
+            if (products.length === 0) {
+                // Aucun produit à afficher
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `<td colspan="12" class="text-center text-muted">Aucun produit disponible</td>`;
+                tableBody.appendChild(emptyRow);
+                return;
+            }
+            
+            // Trier les produits par marque puis nom
+            const sortedProducts = [...products].sort((a, b) => {
+                if (a.brand !== b.brand) {
+                    return a.brand.localeCompare(b.brand);
+                }
+                return a.name.localeCompare(b.name);
+            });
+            
+            sortedProducts.forEach(product => {
+                const row = document.createElement('tr');
+                
+                // Classe pour les produits avec stock faible
+                if (product.quantity < 5) {
+                    row.classList.add('table-warning');
+                }
+                
+                row.innerHTML = `
+                    <td>${product.brand}</td>
+                    <td>${product.name}</td>
+                    <td>${product.origin}</td>
+                    <td>${product.vitola}</td>
+                    <td>${product.wrapper}</td>
+                    <td>${product.binder}</td>
+                    <td>${product.filler}</td>
+                    <td>${product.strength}</td>
+                    <td class="text-end">${product.quantity}</td>
+                    <td class="text-end">${this.formatPrice(product.price)}</td>
+                    <td>${product.supplier}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1 edit-product" data-id="${product.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Ajouter les écouteurs d'événements pour les boutons d'action
+            this.setupProductActionListeners();
+        },
+        
+        setupProductActionListeners: function() {
+            // Boutons d'édition de produit
+            document.querySelectorAll('.edit-product').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.dataset.id;
+                    this.editProduct(productId);
+                });
+            });
+            
+            // Boutons de suppression de produit
+            document.querySelectorAll('.delete-product').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.dataset.id;
+                    this.deleteProduct(productId);
+                });
+            });
+        },
+        
+        editProduct: function(productId) {
+            const product = Model.findProductById(productId);
+            if (!product) return;
+            
+            // Remplir le formulaire modal
+            document.getElementById('productModalTitle').textContent = 'Modifier un produit';
+            document.getElementById('productId').value = product.id;
+            document.getElementById('productBrand').value = product.brand;
+            document.getElementById('productName').value = product.name;
+            document.getElementById('productOrigin').value = product.origin;
+            document.getElementById('productVitola').value = product.vitola;
+            document.getElementById('productWrapper').value = product.wrapper;
+            document.getElementById('productBinder').value = product.binder;
+            document.getElementById('productFiller').value = product.filler;
+            document.getElementById('productStrength').value = product.strength;
+            document.getElementById('productQuantity').value = product.quantity;
+            document.getElementById('productPrice').value = product.price;
+            document.getElementById('productSupplier').value = product.supplier;
+            
+            // Afficher le modal
+            const modal = new bootstrap.Modal(document.getElementById('addEditProductModal'));
+            modal.show();
+        },
+        
+        saveProduct: function() {
+            // Récupérer les valeurs du formulaire
+            const productId = document.getElementById('productId').value;
+            const productData = {
+                brand: document.getElementById('productBrand').value.trim(),
+                name: document.getElementById('productName').value.trim(),
+                origin: document.getElementById('productOrigin').value.trim(),
+                vitola: document.getElementById('productVitola').value.trim(),
+                wrapper: document.getElementById('productWrapper').value.trim(),
+                binder: document.getElementById('productBinder').value.trim(),
+                filler: document.getElementById('productFiller').value.trim(),
+                strength: document.getElementById('productStrength').value,
+                quantity: parseInt(document.getElementById('productQuantity').value) || 0,
+                price: parseFloat(document.getElementById('productPrice').value) || 0,
+                supplier: document.getElementById('productSupplier').value.trim()
+            };
+            
+            // Validation de base
+            if (!productData.brand || !productData.name) {
+                this.showToast('La marque et le nom du cigare sont obligatoires', 'error');
+                return;
+            }
+            
+            if (productId) {
+                // Modification d'un produit existant
+                productData.id = productId;
+                const success = Model.updateProduct(productData);
+                if (success) {
+                    this.showToast('Produit modifié avec succès');
+                } else {
+                    this.showToast('Erreur lors de la modification du produit', 'error');
+                }
+            } else {
+                // Ajout d'un nouveau produit
+                Model.addProduct(productData);
+                this.showToast('Produit ajouté avec succès');
+            }
+            
+            // Fermer le modal et actualiser le tableau
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addEditProductModal'));
+            modal.hide();
+            this.refreshProductTable();
+            this.refreshLabelProductsList();
+            
+            // Vider le formulaire
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+        },
+        
+        deleteProduct: function(productId) {
+            const product = Model.findProductById(productId);
+            if (!product) return;
+            
+            this.showConfirmDialog(
+                'Supprimer un produit',
+                `Êtes-vous sûr de vouloir supprimer "${product.brand} ${product.name}" ?`,
+                () => {
+                    const success = Model.deleteProduct(productId);
+                    if (success) {
+                        this.showToast('Produit supprimé avec succès');
+                        this.refreshProductTable();
+                        this.refreshLabelProductsList();
+                    } else {
+                        this.showToast('Erreur lors de la suppression du produit', 'error');
+                    }
+                }
+            );
+        },
+        
+        resetAllStock: function() {
+            this.showConfirmDialog(
+                'Réinitialiser le stock',
+                'Êtes-vous sûr de vouloir remettre à zéro toutes les quantités en stock ?',
+                () => {
+                    Model.resetProductStock();
+                    this.showToast('Stock réinitialisé avec succès');
+                    this.refreshProductTable();
+                }
+            );
+        },
+        
+        deleteAllProducts: function() {
+            this.showConfirmDialog(
+                'Supprimer tous les produits',
+                'Êtes-vous sûr de vouloir supprimer TOUS les produits ? Cette action est irréversible.',
+                () => {
+                    Model.deleteAllProducts();
+                    this.showToast('Tous les produits ont été supprimés');
+                    this.refreshProductTable();
+                    this.refreshLabelProductsList();
+                }
+            );
+        },
+        
+        // Gestion des ventes et du panier
+        cartItems: [],
+        
+        addToCart: function(productId, quantity = 1) {
+            // Assurez-vous que l'ID est une chaîne
+            productId = String(productId).trim();
+            console.log("Ajout au panier du produit ID:", productId);
+            
+            const product = Model.findProductById(productId);
+            if (!product) {
+                console.error("Produit non trouvé avec ID:", productId);
+                this.showToast('Produit introuvable', 'error');
+                return false;
+            }
+            
+            console.log("Produit trouvé:", product);
+            
+            if (product.quantity < quantity) {
+                this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
+                return false;
+            }
+            
+            // Vérifier si le produit est déjà dans le panier avec une comparaison stricte des chaînes
+            const existingItemIndex = this.cartItems.findIndex(item => String(item.id).trim() === productId);
+            console.log("Index existant:", existingItemIndex);
+            
+            if (existingItemIndex !== -1) {
+                // Si le total demandé dépasse le stock disponible
+                const existingItem = this.cartItems[existingItemIndex];
+                if (existingItem.quantity + quantity > product.quantity) {
+                    this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
+                    return false;
+                }
+                
+                // Mettre à jour la quantité
+                existingItem.quantity += quantity;
+                console.log("Quantité mise à jour:", existingItem.quantity);
+            } else {
+                // Ajouter au panier
+                const newItem = {
+                    id: productId, // S'assurer que l'ID est stocké comme une chaîne
+                    brand: product.brand,
+                    name: product.name,
+                    price: product.price,
+                    origin: product.origin,
+                    supplier: product.supplier,
+                    quantity: quantity
+                };
+                this.cartItems.push(newItem);
+                console.log("Nouveau produit ajouté:", newItem);
+            }
+            
+            // Rafraîchir l'affichage du panier
+            this.refreshCart();
+            return true;
+        },
+        
+        removeFromCart: function(productId, quantity = 1) {
+            // S'assurer que productId est une chaîne
+            productId = String(productId).trim();
+            console.log("Retrait du panier, ID:", productId);
+            
+            const index = this.cartItems.findIndex(item => String(item.id).trim() === productId);
+            if (index === -1) return;
+            
+            if (this.cartItems[index].quantity <= quantity) {
+                // Supprimer complètement du panier
+                console.log("Suppression complète de l'article du panier");
+                this.cartItems.splice(index, 1);
+            } else {
+                // Réduire la quantité
+                console.log("Réduction de la quantité de", quantity);
+                this.cartItems[index].quantity -= quantity;
+            }
+            
+            // Rafraîchir l'affichage du panier
+            this.refreshCart();
+        },
+        
+        clearCart: function() {
+            if (this.cartItems.length === 0) return;
+            
+            this.showConfirmDialog(
+                'Vider le panier',
+                'Êtes-vous sûr de vouloir vider le panier ?',
+                () => {
+                    this.cartItems = [];
+                    this.refreshCart();
+                    this.showToast('Panier vidé');
+                }
+            );
+        },
+        
+        refreshCart: function() {
+            const tableBody = document.querySelector('#cartTable tbody');
+            tableBody.innerHTML = '';
+            
+            // Mise à jour de l'en-tête du tableau pour inclure les nouvelles colonnes
+            const tableHeader = document.querySelector('#cartTable thead tr');
+            // Vérifier si nous devons mettre à jour l'en-tête ou s'il a déjà été mis à jour
+            if (tableHeader.children.length === 6) {
+                tableHeader.innerHTML = `
+                    <th>Marque</th>
+                    <th>Nom</th>
+                    <th>Origine</th>
+                    <th>Fournisseur</th>
+                    <th>Prix</th>
+                    <th>Stock</th>
+                    <th>Qté</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                `;
+            }
+            
+            if (this.cartItems.length === 0) {
+                // Panier vide
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `<td colspan="9" class="text-center text-muted">Le panier est vide</td>`;
+                tableBody.appendChild(emptyRow);
+                document.getElementById('cartTotal').textContent = this.formatPrice(0);
+                return;
+            }
+            
+            let total = 0;
+            
+            // Vérifier si nous sommes en mode groupé (avec sous-totaux)
+            const groupedMode = tableBody.dataset.groupedBy;
+            
+            if (groupedMode) {
+                // Affichage groupé avec sous-totaux
+                return this.renderGroupedCart(groupedMode);
+            }
+            
+            // Affichage normal (non groupé)
+            this.cartItems.forEach(item => {
+                const product = Model.findProductById(item.id);
+                const stockRestant = product ? product.quantity : 'N/A';
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.brand}</td>
+                    <td>${item.name}</td>
+                    <td>${item.origin}</td>
+                    <td>${item.supplier}</td>
+                    <td>${this.formatPrice(item.price)}</td>
+                    <td class="text-center">${stockRestant}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary btn-sm decrease-qty" data-id="${item.id}">-</button>
+                            <span class="btn btn-outline-secondary disabled">${item.quantity}</span>
+                            <button class="btn btn-outline-secondary btn-sm increase-qty" data-id="${item.id}">+</button>
+                        </div>
+                    </td>
+                    <td>${this.formatPrice(itemTotal)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger remove-item" data-id="${item.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('cartTotal').textContent = this.formatPrice(total);
+            
+            // Conserver une référence au ViewModel pour les écouteurs
+            const self = this;
+            
+            // Ajouter les écouteurs d'événements
+            document.querySelectorAll('.decrease-qty').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.removeFromCart(productId, 1);
+                });
+            });
+
+            document.querySelectorAll('.increase-qty').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.addToCart(productId, 1);
+                });
+            });
+
+            document.querySelectorAll('.remove-item').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.removeFromCart(productId, Number.MAX_SAFE_INTEGER);
+                });
+            });
+        },
+        setupSortListeners: function() {
+            document.getElementById('sortByBrand').addEventListener('click', () => {
+                const tableBody = document.querySelector('#cartTable tbody');
+                tableBody.dataset.groupedBy = 'brand';
+                this.renderGroupedCart('brand');
+            });
+            
+            document.getElementById('sortByOrigin').addEventListener('click', () => {
+                const tableBody = document.querySelector('#cartTable tbody');
+                tableBody.dataset.groupedBy = 'origin';
+                this.renderGroupedCart('origin');
+            });
+            
+            document.getElementById('sortBySupplier').addEventListener('click', () => {
+                const tableBody = document.querySelector('#cartTable tbody');
+                tableBody.dataset.groupedBy = 'supplier';
+                this.renderGroupedCart('supplier');
+            });
+        },
+        renderGroupedCart: function(groupBy) {
+            const tableBody = document.querySelector('#cartTable tbody');
+            tableBody.innerHTML = '';
+            tableBody.dataset.groupedBy = groupBy;
+            
+            if (this.cartItems.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `<td colspan="9" class="text-center text-muted">Le panier est vide</td>`;
+                tableBody.appendChild(emptyRow);
+                document.getElementById('cartTotal').textContent = this.formatPrice(0);
+                return;
+            }
+            
+            let grandTotal = 0;
+            
+            // Création des groupes basés sur le critère de tri
+            const groups = {};
+            this.cartItems.forEach(item => {
+                const groupKey = item[groupBy];
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        items: [],
+                        total: 0
+                    };
+                }
+                groups[groupKey].items.push(item);
+                groups[groupKey].total += item.price * item.quantity;
+                grandTotal += item.price * item.quantity;
+            });
+            
+            // Titre à afficher pour chaque groupe
+            const groupTitles = {
+                'brand': 'Marque',
+                'origin': 'Pays',
+                'supplier': 'Fournisseur'
+            };
+            
+            // Afficher chaque groupe avec son sous-total
+            Object.keys(groups).sort().forEach(groupKey => {
+                const group = groups[groupKey];
+                
+                // En-tête du groupe
+                const headerRow = document.createElement('tr');
+                headerRow.className = 'table-secondary';
+                headerRow.innerHTML = `
+                    <td colspan="7"><strong>${groupTitles[groupBy]}: ${groupKey}</strong></td>
+                    <td><strong>${this.formatPrice(group.total)}</strong></td>
+                    <td></td>
+                `;
+                tableBody.appendChild(headerRow);
+                
+                // Articles du groupe
+                group.items.forEach(item => {
+                    const product = Model.findProductById(item.id);
+                    const stockRestant = product ? product.quantity : 'N/A';
+                    const itemTotal = item.price * item.quantity;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.brand}</td>
+                        <td>${item.name}</td>
+                        <td>${item.origin}</td>
+                        <td>${item.supplier}</td>
+                        <td>${this.formatPrice(item.price)}</td>
+                        <td class="text-center">${stockRestant}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary btn-sm decrease-qty" data-id="${item.id}">-</button>
+                                <span class="btn btn-outline-secondary disabled">${item.quantity}</span>
+                                <button class="btn btn-outline-secondary btn-sm increase-qty" data-id="${item.id}">+</button>
+                            </div>
+                        </td>
+                        <td>${this.formatPrice(itemTotal)}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger remove-item" data-id="${item.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            });
+            
+            document.getElementById('cartTotal').textContent = this.formatPrice(grandTotal);
+            
+            // Ajouter un bouton pour revenir à la vue normale
+            const returnRow = document.createElement('tr');
+            returnRow.className = 'table-light';
+            returnRow.innerHTML = `
+                <td colspan="9" class="text-center">
+                    <button class="btn btn-sm btn-outline-secondary" id="resetGroupingBtn">
+                        <i class="fas fa-list"></i> Affichage normal
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(returnRow);
+            
+            // Écouteur pour retourner à la vue normale
+            document.getElementById('resetGroupingBtn').addEventListener('click', () => {
+                delete tableBody.dataset.groupedBy;
+                this.refreshCart();
+            });
+            
+            // Conserver une référence au ViewModel pour les écouteurs
+            const self = this;
+            
+            // Ajouter les écouteurs d'événements
+            document.querySelectorAll('.decrease-qty').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.removeFromCart(productId, 1);
+                });
+            });
+
+            document.querySelectorAll('.increase-qty').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.addToCart(productId, 1);
+                });
+            });
+
+            document.querySelectorAll('.remove-item').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const productId = String(e.currentTarget.dataset.id);
+                    self.removeFromCart(productId, Number.MAX_SAFE_INTEGER);
+                });
+            });
+        },
+        
+        refreshSalesHistory: function() {
+            const sales = Model.getSales();
+            const historyContainer = document.getElementById('salesHistory');
+            historyContainer.innerHTML = '';
+            
+            if (sales.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center text-muted"><i>Aucune vente enregistrée</i></div>';
+                return;
+            }
+            
+            // Trier par date (plus récent en premier)
+            const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedSales.forEach(sale => {
+                const saleItem = document.createElement('a');
+                saleItem.href = '#';
+                saleItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-start';
+                saleItem.dataset.id = sale.id;
+                
+                const productsCount = sale.products.reduce((sum, p) => sum + p.quantity, 0);
+                
+                saleItem.innerHTML = `
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">${this.formatDate(sale.date)}</div>
+                        <small>${productsCount} article(s)</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">${this.formatPrice(sale.totalAmount)}</span>
+                `;
+                
+                saleItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.showSaleDetails(sale.id);
+                });
+                
+                historyContainer.appendChild(saleItem);
+            });
+        },
+        
+        showSaleDetails: function(saleId) {
+            const sales = Model.getSales();
+            const sale = sales.find(s => s.id === saleId);
+            
+            if (!sale) {
+                this.showToast('Vente introuvable', 'error');
+                return;
+            }
+            
+            // Remplir le modal de détails
+            document.getElementById('saleDetailDate').textContent = this.formatDate(sale.date);
+            document.getElementById('saleDetailTotal').textContent = this.formatPrice(sale.totalAmount);
+            
+            const tableBody = document.querySelector('#saleDetailTable tbody');
+            tableBody.innerHTML = '';
+            
+            sale.products.forEach(item => {
+                const row = document.createElement('tr');
+                const itemTotal = item.price * item.quantity;
+                
+                row.innerHTML = `
+                    <td>${item.brand}</td>
+                    <td>${item.name}</td>
+                    <td>${this.formatPrice(item.price)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${this.formatPrice(itemTotal)}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Configurer le bouton de suppression
+            const deleteButton = document.getElementById('deleteSaleBtn');
+            const newDeleteButton = deleteButton.cloneNode(true);
+            deleteButton.parentNode.replaceChild(newDeleteButton, deleteButton);
+            
+            newDeleteButton.addEventListener('click', () => {
+                this.deleteSale(saleId);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('saleDetailModal'));
+                modal.hide();
+            });
+            
+            // Afficher le modal
+            const modal = new bootstrap.Modal(document.getElementById('saleDetailModal'));
+            modal.show();
+        },
+        
+        deleteSale: function(saleId) {
+            this.showConfirmDialog(
+                'Supprimer la vente',
+                'Voulez-vous remettre les produits en stock ?',
+                () => {
+                    const success = Model.deleteSale(saleId, true);
+                    if (success) {
+                        this.showToast('Vente supprimée et stock restauré');
+                        this.refreshSalesHistory();
+                        this.refreshProductTable();
+                        this.refreshStatistics();
+                    } else {
+                        this.showToast('Erreur lors de la suppression', 'error');
+                    }
+                }
+            );
+        },
+        
+        cancelLastSale: function() {
+            const sales = Model.getSales();
+            if (sales.length === 0) {
+                this.showToast('Aucune vente à annuler', 'warning');
+                return;
+            }
+            
+            // Trouver la vente la plus récente
+            const lastSale = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+            
+            this.showConfirmDialog(
+                'Annuler la dernière vente',
+                `Voulez-vous annuler la vente du ${this.formatDate(lastSale.date)} ?`,
+                () => {
+                    const success = Model.deleteSale(lastSale.id, true);
+                    if (success) {
+                        this.showToast('Dernière vente annulée et stock restauré');
+                        this.refreshSalesHistory();
+                        this.refreshProductTable();
+                        this.refreshStatistics();
+                    } else {
+                        this.showToast('Erreur lors de l\'annulation', 'error');
+                    }
+                }
+            );
+        },
+        
+        clearSalesHistory: function() {
+            if (Model.getSales().length === 0) {
+                this.showToast('L\'historique est déjà vide', 'info');
+                return;
+            }
+            
+            this.showConfirmDialog(
+                'Effacer l\'historique',
+                'Voulez-vous restaurer les produits vendus dans le stock ?',
+                () => {
+                    Model.deleteAllSales(true);
+                    this.showToast('Historique supprimé et stock restauré');
+                    this.refreshSalesHistory();
+                    this.refreshProductTable();
+                    this.refreshStatistics();
+                }
+            );
+        },
+        
+        // Filtrage des ventes par période
+        filterSalesByDate: function(period) {
+            const sales = Model.getSales();
+            const now = new Date();
+            let filteredSales = [];
+            
+            switch (period) {
+                case 'day':
+                    // Aujourd'hui (même jour)
+                    filteredSales = sales.filter(sale => {
+                        const saleDate = new Date(sale.date);
+                        return saleDate.toDateString() === now.toDateString();
+                    });
+                    break;
+                    
+                case 'week':
+                    // Cette semaine (derniers 7 jours)
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(now.getDate() - 7);
+                    filteredSales = sales.filter(sale => {
+                        const saleDate = new Date(sale.date);
+                        return saleDate >= weekAgo;
+                    });
+                    break;
+                    
+                case 'month':
+                    // Ce mois (même mois et année)
+                    filteredSales = sales.filter(sale => {
+                        const saleDate = new Date(sale.date);
+                        return saleDate.getMonth() === now.getMonth() && 
+                               saleDate.getFullYear() === now.getFullYear();
+                    });
+                    break;
+                    
+                default:
+                    // Tous
+                    filteredSales = sales;
+            }
+            
+            return filteredSales;
+        },
+        
+        // Statistiques
+        refreshStatistics: function() {
+            // Récupérer la période sélectionnée
+            const period = document.getElementById('statsPeriod').value;
+            const brandFilter = document.getElementById('statsBrand').value;
+            const supplierFilter = document.getElementById('statsSupplier').value;
+            
+            // Filtrer les ventes par période
+            let filteredSales = this.filterSalesByDate(period);
+            
+            // Appliquer les filtres supplémentaires
+            if (brandFilter !== 'all' || supplierFilter !== 'all') {
+                filteredSales = filteredSales.map(sale => {
+                    // Créer une copie avec seulement les produits qui correspondent aux filtres
+                    const filteredProducts = sale.products.filter(product => {
+                        const brandMatch = brandFilter === 'all' || product.brand === brandFilter;
+                        const supplierMatch = supplierFilter === 'all' || product.supplier === supplierFilter;
+                        return brandMatch && supplierMatch;
+                    });
+                    
+                    if (filteredProducts.length === 0) {
+                        return null; // Cette vente n'a aucun produit correspondant aux filtres
+                    }
+                    
+                    // Calculer le nouveau total pour cette vente (uniquement produits filtrés)
+                    const newTotal = filteredProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+                    
+                    return {
+                        ...sale,
+                        products: filteredProducts,
+                        totalAmount: newTotal
+                    };
+                }).filter(sale => sale !== null); // Éliminer les ventes sans produits correspondants
+            }
+            
+            // Mise à jour des statistiques globales
+            const totalSales = filteredSales.length;
+            const totalAmount = filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+            
+            document.getElementById('statsTotalSales').textContent = totalSales;
+            document.getElementById('statsTotalAmount').textContent = this.formatPrice(totalAmount);
+            
+            // Agréger les données par produit
+            const productSales = {};
+            
+            filteredSales.forEach(sale => {
+                sale.products.forEach(product => {
+                    const key = `${product.brand} ${product.name}`;
+                    if (!productSales[key]) {
+                        productSales[key] = {
+                            name: key,
+                            quantity: 0,
+                            amount: 0,
+                            brand: product.brand,
+                            supplier: product.supplier
+                        };
+                    }
+                    productSales[key].quantity += product.quantity;
+                    productSales[key].amount += product.price * product.quantity;
+                });
+            });
+            
+            // Trouver le produit le plus vendu
+            let topProduct = { name: 'N/A', quantity: 0 };
+            let topSupplier = { name: 'N/A', amount: 0 };
+            const supplierSales = {};
+            
+            Object.values(productSales).forEach(product => {
+                if (product.quantity > topProduct.quantity) {
+                    topProduct = { name: product.name, quantity: product.quantity };
+                }
+                
+                // Agréger par fournisseur
+                if (!supplierSales[product.supplier]) {
+                    supplierSales[product.supplier] = {
+                        name: product.supplier,
+                        quantity: 0,
+                        amount: 0
+                    };
+                }
+                supplierSales[product.supplier].quantity += product.quantity;
+                supplierSales[product.supplier].amount += product.amount;
+                
+                if (supplierSales[product.supplier].amount > topSupplier.amount) {
+                    topSupplier = { 
+                        name: product.supplier, 
+                        amount: supplierSales[product.supplier].amount 
+                    };
+                }
+            });
+            
+            document.getElementById('statsTopProduct').textContent = 
+                topProduct.name !== 'N/A' ? `${topProduct.name} (${topProduct.quantity})` : 'N/A';
+            
+            document.getElementById('statsTopSupplier').textContent = 
+                topSupplier.name !== 'N/A' ? `${topSupplier.name} (${this.formatPrice(topSupplier.amount)})` : 'N/A';
+            
+            // Mise à jour des graphiques
+            this.updateProductSalesChart(Object.values(productSales));
+            this.updateSupplierChart(Object.values(supplierSales));
+        },
+        
+        updateProductSalesChart: function(productData) {
+            // Trier par quantité (décroissant) et prendre les 10 premiers
+            const chartData = [...productData]
+                .sort((a, b) => b.quantity - a.quantity)
+                .slice(0, 10);
+            
+            // Sélectionner le canvas
+            const ctx = document.getElementById('productSalesChart').getContext('2d');
+            
+            // Supprimer le graphique précédent s'il existe
+            if (this.productChart) {
+                this.productChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            this.productChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.map(item => item.name),
+                    datasets: [{
+                        label: 'Quantité vendue',
+                        data: chartData.map(item => item.quantity),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0 // Uniquement des entiers
+                            }
+                        }
+                    }
+                }
+            });
+        },
+        
+        updateSupplierChart: function(supplierData) {
+            // Trier par montant (décroissant)
+            const chartData = [...supplierData]
+                .sort((a, b) => b.amount - a.amount);
+            
+            // Sélectionner le canvas
+            const ctx = document.getElementById('supplierChart').getContext('2d');
+            
+            // Supprimer le graphique précédent s'il existe
+            if (this.supplierChart) {
+                this.supplierChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            this.supplierChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: chartData.map(item => item.name),
+                    datasets: [{
+                        data: chartData.map(item => item.amount),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(199, 199, 199, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        },
+        
+        // Mise à jour des listes déroulantes dans les statistiques
+        updateStatisticsFilters: function() {
+            const products = Model.getProducts();
+            
+            // Extraire toutes les marques uniques
+            const brands = [...new Set(products.map(p => p.brand))].sort();
+            const suppliers = [...new Set(products.map(p => p.supplier))].sort();
+            
+            // Rafraîchir la liste des marques
+            const brandSelect = document.getElementById('statsBrand');
+            brandSelect.innerHTML = '<option value="all" selected>Toutes</option>';
+            
+            brands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                brandSelect.appendChild(option);
+            });
+            
+            // Rafraîchir la liste des fournisseurs
+            const supplierSelect = document.getElementById('statsSupplier');
+            supplierSelect.innerHTML = '<option value="all" selected>Tous</option>';
+            
+            suppliers.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier;
+                option.textContent = supplier;
+                supplierSelect.appendChild(option);
+            });
+        },
+        
+        exportStatisticsToExcel: function() {
+            // Récupérer la période sélectionnée
+            const period = document.getElementById('statsPeriod').value;
+            const brandFilter = document.getElementById('statsBrand').value;
+            const supplierFilter = document.getElementById('statsSupplier').value;
+            
+            // Filtrer les ventes
+            let filteredSales = this.filterSalesByDate(period);
+            
+            // Préparer les données pour l'export
+            // 1. Agrégation par produit
+            const productData = {};
+            
+            filteredSales.forEach(sale => {
+                sale.products.forEach(product => {
+                    // Vérifier si le produit correspond aux filtres
+                    const brandMatch = brandFilter === 'all' || product.brand === brandFilter;
+                    const supplierMatch = supplierFilter === 'all' || product.supplier === supplierFilter;
+                    
+                    if (!brandMatch || !supplierMatch) return;
+                    
+                    const key = `${product.brand}-${product.name}`;
+                    if (!productData[key]) {
+                        productData[key] = {
+                            brand: product.brand,
+                            name: product.name,
+                            origin: product.origin,
+                            supplier: product.supplier,
+                            quantity: 0,
+                            totalAmount: 0
+                        };
+                    }
+                    
+                    productData[key].quantity += product.quantity;
+                    productData[key].totalAmount += product.price * product.quantity;
+                });
+            });
+            
+            // Convertir en tableau pour l'export
+            const data = Object.values(productData).map(product => ({
+                'Marque': product.brand,
+                'Nom': product.name,
+                'Origine': product.origin,
+                'Fournisseur': product.supplier,
+                'Quantité vendue': product.quantity,
+                'Montant total': product.totalAmount.toFixed(2) + ' €'
+            }));
+            
+            // Ajouter une ligne de total
+            const totalQuantity = data.reduce((sum, item) => sum + item['Quantité vendue'], 0);
+            const totalAmount = data.reduce((sum, item) => sum + parseFloat(item['Montant total']), 0);
+            
+            data.push({
+                'Marque': 'TOTAL',
+                'Nom': '',
+                'Origine': '',
+                'Fournisseur': '',
+                'Quantité vendue': totalQuantity,
+                'Montant total': totalAmount.toFixed(2) + ' €'
+            });
+            
+            // Créer le classeur Excel
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            
+            // Ajouter la feuille au classeur
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Catalogue Complet');
+            
+            // Générer et télécharger le fichier
+            XLSX.writeFile(workbook, 'Catalogue_Cigares_Le_Diplomate.xlsx');
+            this.showToast('Catalogue exporté avec succès');
+        },
+        
+        // Sauvegarde et restauration
+        backupData: function() {
+            const backupData = Model.backupData();
+            
+            // Convertir en JSON string
+            const jsonData = JSON.stringify(backupData);
+            
+            // Créer un blob et un lien de téléchargement
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Créer un lien temporaire et déclencher le téléchargement
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Sauvegarde_Le_Diplomate_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Nettoyer
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            this.showToast('Sauvegarde téléchargée avec succès');
+        },
+        
+        restoreData: function(file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    
+                    // Validation minimale
+                    if (!backupData.products || !backupData.sales) {
+                        this.showToast('Format de sauvegarde invalide', 'error');
+                        return;
+                    }
+                    
+                    this.showConfirmDialog(
+                        'Restauration de données',
+                        'Cette action remplacera toutes vos données actuelles. Continuer ?',
+                        () => {
+                            const success = Model.restoreData(backupData);
+                            
+                            if (success) {
+                                this.showToast('Données restaurées avec succès');
+                                
+                                // Rafraîchir toute l'interface
+                                this.refreshProductTable();
+                                this.refreshSalesHistory();
+                                this.refreshStatistics();
+                                this.refreshLabelProductsList();
+                                this.updateStatisticsFilters();
+                            } else {
+                                this.showToast('Erreur lors de la restauration', 'error');
+                            }
+                        }
+                    );
+                } catch (error) {
+                    console.error('Erreur lors de la restauration:', error);
+                    this.showToast('Format de fichier invalide', 'error');
+                }
+            };
+            
+            reader.onerror = () => {
+                this.showToast('Erreur de lecture du fichier', 'error');
+            };
+            
+            reader.readAsText(file);
+        },
+        
+        // Génération d'étiquettes
+        selectedLabels: [],
+        
+        refreshLabelProductsList: function() {
+            const products = Model.getProducts();
+            const container = document.getElementById('labelProductsList');
+            container.innerHTML = '';
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i>Aucun produit disponible</i></div>';
+                return;
+            }
+            
+            // Trier par marque puis nom
+            const sortedProducts = [...products].sort((a, b) => {
+                if (a.brand !== b.brand) {
+                    return a.brand.localeCompare(b.brand);
+                }
+                return a.name.localeCompare(b.name);
+            });
+            
+            sortedProducts.forEach(product => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                
+                // Vérifier si le produit est déjà sélectionné
+                const isSelected = this.selectedLabels.some(p => p.id === product.id);
+                if (isSelected) {
+                    item.classList.add('active');
+                }
+                
+                item.innerHTML = `
+                    <div>
+                        <strong>${product.brand}</strong> - ${product.name}
+                        <div><small>${product.origin} | ${product.vitola}</small></div>
+                    </div>
+                    <input class="form-check-input" type="checkbox" ${isSelected ? 'checked' : ''}>
+                `;
+                
+                // Gestionnaire de clic pour sélectionner/désélectionner
+                item.addEventListener('click', (e) => {
+                    // Ignorer si on clique directement sur la checkbox
+                    if (e.target.type === 'checkbox') return;
+                    
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    this.toggleProductLabel(product, checkbox.checked);
+                });
+                
+                // Gestionnaire de changement de checkbox
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', () => {
+                    this.toggleProductLabel(product, checkbox.checked);
+                });
+                
+                container.appendChild(item);
+            });
+        },
+
+        // Nouvelle méthode pour basculer la sélection d'étiquettes
+        toggleProductLabel: function(product, isSelected) {
+            const item = document.querySelector(`.list-group-item[data-id="${product.id}"]`);
+            
+            if (isSelected) {
+                if (!this.selectedLabels.some(p => p.id === product.id)) {
+                    this.selectedLabels.push(product);
+                }
+                item.classList.add('active');
+            } else {
+                this.selectedLabels = this.selectedLabels.filter(p => p.id !== product.id);
+                item.classList.remove('active');
+            }
+            
+            // Mettre à jour le nombre d'étiquettes
+            document.getElementById('labelCount').textContent = this.selectedLabels.length;
+        },
+        
+        generateLabels: function() {
+            if (this.selectedLabels.length === 0) {
+                this.showToast('Aucun produit sélectionné', 'warning');
+                return;
+            }
+            
+            const container = document.getElementById('labelsContainer');
+            container.innerHTML = '';
+            
+            // Créer un conteneur pour la grille d'étiquettes
+            const labelsGrid = document.createElement('div');
+            labelsGrid.className = 'row';
+            
+            console.log(`Génération de ${this.selectedLabels.length} étiquettes...`);
+            
+            // Ajouter chaque étiquette sélectionnée
+            this.selectedLabels.forEach((product, index) => {
+                // Créer la colonne pour chaque étiquette (2 par ligne sur mobile, 4 par ligne sur desktop)
+                const labelCol = document.createElement('div');
+                labelCol.className = 'col-6 col-md-3 mb-4';
+                
+                // Créer l'étiquette
+                const label = document.createElement('div');
+                label.className = 'label-preview';
+                
+                // Calculer les indicateurs d'intensité selon la force du cigare
+                const intensityLevels = {
+                    'Légère': 1,
+                    'Légère-Moyenne': 2,
+                    'Moyenne': 3,
+                    'Moyenne-Forte': 4,
+                    'Forte': 5
+                };
+                
+                const intensityLevel = intensityLevels[product.strength] || 3;
+                let intensityHTML = '';
+                
+                for (let i = 1; i <= 5; i++) {
+                    intensityHTML += `<span class="intensity-indicator ${i <= intensityLevel ? 'intensity-filled' : ''}"></span>`;
+                }
+                
+                // Générer une clé unique pour le QR code
+                const qrData = `${product.brand}-${product.name}`;
+                
+                // Contenu de l'étiquette
+                label.innerHTML = `
+                    <div class="label-qrcode" id="qrcode-${index}-${product.id.replace(/[^a-zA-Z0-9]/g, '')}"></div>
+                    <div class="label-title">
+                        <span class="label-brand">${product.brand || ''}</span>
+                        <span class="label-name">${product.name || ''}</span>
+                    </div>
+                    <div class="label-details">
+                        <p><strong>Pays:</strong> ${product.origin || '--'}</p>
+                        <p><strong>Vitole:</strong> ${product.vitola || '--'}</p>
+                        <p><strong>Cape:</strong> ${product.wrapper || '--'}</p>
+                        <p><strong>Sous-cape:</strong> ${product.binder || '--'}</p>
+                        <p><strong>Tripe:</strong> ${product.filler || '--'}</p>
+                        <p><strong>Force:</strong> ${intensityHTML}</p>
+                    </div>
+                    <div class="label-price">${this.formatPrice(product.price)}</div>
+                `;
+                
+                // Ajouter l'étiquette à la colonne
+                labelCol.appendChild(label);
+                // Ajouter la colonne à la grille
+                labelsGrid.appendChild(labelCol);
+                
+                console.log(`Étiquette ${index+1}/${this.selectedLabels.length} ajoutée au DOM pour ${product.brand} ${product.name}`);
+            });
+            
+            // Ajouter la grille au conteneur principal
+            container.appendChild(labelsGrid);
+            
+            // Générer les QR codes après que tout le DOM soit mis à jour
+            setTimeout(() => {
+                this.selectedLabels.forEach((product, index) => {
+                    try {
+                        // Générer un ID sécurisé en enlevant les caractères spéciaux
+                        const safeId = `qrcode-${index}-${product.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        const qrElement = document.getElementById(safeId);
+                        
+                        if (qrElement) {
+                            new QRCode(qrElement, {
+                                text: `${product.brand}-${product.name}`,
+                                width: 75,
+                                height: 75,
+                                colorDark: '#000000',
+                                colorLight: '#ffffff',
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                            console.log(`QR code généré pour ${product.brand} ${product.name}`);
+                        } else {
+                            console.error(`Élément QR code non trouvé: ${safeId}`);
+                        }
+                    } catch (error) {
+                        console.error(`Erreur lors de la génération du QR code pour ${product.brand} ${product.name}:`, error);
+                    }
+                });
+            }, 100);
+            
+            console.log(`${this.selectedLabels.length} étiquettes générées au total`);
+        },
+        
+        printLabels: function() {
+            if (this.selectedLabels.length === 0) {
+                this.showToast('Aucune étiquette à imprimer', 'warning');
+                return;
+            }
+            
+            // Assurer que le style d'impression est correctement configuré
+            const styleElement = document.createElement('style');
+            styleElement.id = 'print-style-element';
+            styleElement.textContent = `
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 10mm;
+                    }
+                    
+                    body * {
+                        visibility: hidden;
+                    }
+                    
+                    #labelsContainer, #labelsContainer * {
+                        visibility: visible;
+                    }
+                    
+                    #labelsContainer {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    
+                    .label-preview {
+                        page-break-inside: avoid;
+                    }
+                    
+                    .label-qrcode {
+                        width: 2cm !important;
+                        height: 2cm !important;
+                    }
+                    
+                    .label-qrcode img {
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
+                }
+            `;
+            
+            // Supprimer l'ancien style s'il existe
+            const oldStyle = document.getElementById('print-style-element');
+            if (oldStyle) {
+                oldStyle.remove();
+            }
+            
+            document.head.appendChild(styleElement);
+            
+            // Déclencher l'impression
+            window.print();
+        },
+        
+        // Scanner QR Code
+        initQRScanner: function() {
+            const scannerModal = document.getElementById('scannerModal');
+            const video = document.getElementById('qrScanner');
+            const self = this; // Conserver la référence au ViewModel
+            
+            // Créer l'instance du scanner
+            this.qrScanner = new Html5Qrcode('qrScanner');
+            
+            // Quand le modal est affiché
+            scannerModal.addEventListener('shown.bs.modal', () => {
+                // Démarrer le scanner
+                this.qrScanner.start(
+                    { facingMode: "environment" }, // Utiliser la caméra arrière
+                    {
+                        fps: 10,
+                        qrbox: 250
+                    },
+                    // Utiliser une fonction explicite avec référence au self
+                    function(decodedText) {
+                        self.onQRCodeScanned(decodedText);
+                    },
+                    function(err) {
+                        self.onQRScanError(err);
+                    }
+                )
+                .catch(err => {
+                    console.error('Erreur démarrage scanner:', err);
+                    self.showToast('Erreur d\'accès à la caméra', 'error');
+                });
+            });
+            
+            // Quand le modal est fermé
+            scannerModal.addEventListener('hidden.bs.modal', () => {
+                // Arrêter le scanner s'il est en cours
+                if (this.qrScanner && this.qrScanner.isScanning) {
+                    this.qrScanner.stop()
+                    .catch(err => console.error('Erreur arrêt scanner:', err));
+                }
+            });
+        },
+        
+        onQRCodeScanned: function(decodedText) {
+            // Essayer de trouver le produit correspondant
+            const productId = String(decodedText).trim();
+            console.log("QR Code scanné:", productId);
+            
+            const product = Model.findProductById(productId);
+            
+            if (product) {
+                console.log("Produit trouvé par scan QR:", product);
+                // Ajouter au panier - Utiliser this au lieu de self
+                this.addToCart(productId, 1);
+                
+                // Fermer le scanner
+                const modal = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                this.showToast(`${product.brand} ${product.name} ajouté au panier`);
+            } else {
+                console.error("Produit non trouvé par scan QR:", productId);
+                this.showToast('Produit non reconnu', 'warning');
+            }
+        },
+        
+        onQRScanError: function(err) {
+            // Ne rien faire sur les erreurs de lecture (c'est normal quand aucun QR n'est détecté)
+            console.debug('QR scan error:', err);
+        },
+        
+        // Configuration et écouteurs d'événements
+        setupEventListeners: function() {
+            // Navigation par onglets
+            document.querySelectorAll('.nav-link').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Mettre à jour les classes actives
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    e.currentTarget.classList.add('active');
+                    
+                    // Afficher l'onglet correspondant
+                    const targetId = e.currentTarget.getAttribute('href').substring(1);
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                    });
+                    document.getElementById(targetId).classList.add('show', 'active');
+                    
+                    // Actions spécifiques selon l'onglet
+                    if (targetId === 'statistics') {
+                        this.updateStatisticsFilters();
+                        this.refreshStatistics();
+                    }
+                });
+            });
+            
+            // Écouteurs pour le module VENTES
+            // Bouton scanner QR
+            document.getElementById('scanQrBtn').addEventListener('click', () => {
+                const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
+                modal.show();
+            });
+            
+            // Recherche de produits pour le panier
+            // Recherche de produits pour le panier
+            document.getElementById('searchProductForCart').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const products = Model.getProducts();
+                const tableBody = document.querySelector('#searchProductTable tbody');
+                tableBody.innerHTML = '';
+                
+                // Filtrer les produits par le terme de recherche
+                const filteredProducts = products.filter(product => {
+                    return product.brand.toLowerCase().includes(searchTerm) ||
+                           product.name.toLowerCase().includes(searchTerm) ||
+                           product.origin.toLowerCase().includes(searchTerm);
+                });
+                
+                // Limiter à 10 résultats pour la performance
+                const displayProducts = filteredProducts.slice(0, 10);
+                
+                displayProducts.forEach(product => {
+                    const row = document.createElement('tr');
+                    
+                    // Classe pour les produits épuisés
+                    if (product.quantity === 0) {
+                        row.classList.add('table-danger');
+                    } else if (product.quantity < 5) {
+                        row.classList.add('table-warning');
+                    }
+                    
+                    // IMPORTANT: Utiliser à la fois l'ID système et la clé composite
+                    // Cela permet de maintenir la compatibilité avec le code existant
+                    const compositeKey = `${product.brand}-${product.name}`;
+                    
+                    row.innerHTML = `
+                        <td>${product.brand}</td>
+                        <td>${product.name}</td>
+                        <td>${product.origin}</td>
+                        <td class="text-end">${product.quantity}</td>
+                        <td class="text-end">${this.formatPrice(product.price)}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-primary add-to-cart" data-id="${product.id}" data-key="${compositeKey}" 
+                                    ${product.quantity === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Ajouter les écouteurs pour les boutons d'ajout
+                const self = this;
+                document.querySelectorAll('.add-to-cart').forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        // Utiliser la clé composite plutôt que l'ID
+                        const compositeKey = e.currentTarget.dataset.key;
+                        console.log("Ajout manuel de produit avec clé:", compositeKey);
+                        
+                        const success = self.addToCart(compositeKey, 1);
+                        
+                        if (success) {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                            modal.hide();
+                        }
+                    });
+                });
+            });
+            // Boutons de tri dans le panier
+            this.setupSortListeners();
+            
+            // Recherche dans le panier
+            document.getElementById('cartSearch').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#cartTable tbody tr');
+                
+                rows.forEach(row => {
+                    // Ignorer la ligne "panier vide"
+                    if (row.cells.length <= 1) return;
+                    
+                    const brand = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    
+                    if (brand.includes(searchTerm) || name.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Vider le panier
+            document.getElementById('clearCartBtn').addEventListener('click', () => {
+                this.clearCart();
+            });
+            
+            // Valider la vente
+            document.getElementById('validateSaleBtn').addEventListener('click', () => {
+                this.validateSale();
+            });
+            
+            // Filtres d'historique
+            document.getElementById('filterToday').addEventListener('click', (e) => {
+                e.preventDefault();
+                const sales = this.filterSalesByDate('day');
+                this.renderFilteredSales(sales);
+            });
+            
+            document.getElementById('filterWeek').addEventListener('click', (e) => {
+                e.preventDefault();
+                const sales = this.filterSalesByDate('week');
+                this.renderFilteredSales(sales);
+            });
+            
+            document.getElementById('filterMonth').addEventListener('click', (e) => {
+                e.preventDefault();
+                const sales = this.filterSalesByDate('month');
+                this.renderFilteredSales(sales);
+            });
+            
+            document.getElementById('filterAll').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.refreshSalesHistory();
+            });
+            
+            // Annuler dernière vente
+            document.getElementById('cancelLastSaleBtn').addEventListener('click', () => {
+                this.cancelLastSale();
+            });
+            
+            // Effacer l'historique
+            document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+                this.clearSalesHistory();
+            });
+            
+            // Écouteurs pour le module PRODUITS
+            // Recherche de produits
+            document.getElementById('productSearch').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#productsTable tbody tr');
+                
+                rows.forEach(row => {
+                    // Ignorer la ligne "aucun produit"
+                    if (row.cells.length <= 1) return;
+                    
+                    const brand = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const origin = row.cells[2].textContent.toLowerCase();
+                    const supplier = row.cells[10].textContent.toLowerCase();
+                    
+                    if (brand.includes(searchTerm) || 
+                        name.includes(searchTerm) || 
+                        origin.includes(searchTerm) || 
+                        supplier.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Nouveau produit
+            document.getElementById('addEditProductModal').addEventListener('show.bs.modal', (e) => {
+                if (!e.relatedTarget || !e.relatedTarget.classList.contains('edit-product')) {
+                    // C'est un nouveau produit, pas une modification
+                    document.getElementById('productModalTitle').textContent = 'Ajouter un produit';
+                    document.getElementById('productForm').reset();
+                    document.getElementById('productId').value = '';
+                }
+            });
+            
+            // Sauvegarder le produit
+            document.getElementById('saveProductBtn').addEventListener('click', () => {
+                this.saveProduct();
+            });
+            
+            // Réinitialiser le stock
+            document.getElementById('resetStockBtn').addEventListener('click', () => {
+                this.resetAllStock();
+            });
+            
+            // Supprimer tous les produits
+            document.getElementById('deleteAllProductsBtn').addEventListener('click', () => {
+                this.deleteAllProducts();
+            });
+            
+            // Import/Export Excel
+            document.getElementById('importBtn').addEventListener('click', () => {
+                const fileInput = document.getElementById('importFile');
+                if (fileInput.files.length === 0) {
+                    this.showToast('Aucun fichier sélectionné', 'warning');
+                    return;
+                }
+                
+                this.importProductsFromExcel(fileInput.files[0]);
+            });
+            
+            document.getElementById('exportBtn').addEventListener('click', () => {
+                this.exportProductsToExcel();
+            });
+            
+            // Écouteurs pour le module STATISTIQUES
+            // Changement de période
+            document.getElementById('statsPeriod').addEventListener('change', () => {
+                this.refreshStatistics();
+            });
+            
+            // Changement de filtre de marque
+            document.getElementById('statsBrand').addEventListener('change', () => {
+                this.refreshStatistics();
+            });
+            
+            // Changement de filtre de fournisseur
+            document.getElementById('statsSupplier').addEventListener('change', () => {
+                this.refreshStatistics();
+            });
+            
+            // Export des statistiques
+            document.getElementById('exportStatsBtn').addEventListener('click', () => {
+                this.exportStatisticsToExcel();
+            });
+            
+            // Écouteurs pour le module ÉTIQUETTES
+            // Recherche de produits pour étiquettes
+            document.getElementById('labelSearch').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const items = document.querySelectorAll('#labelProductsList .list-group-item');
+                
+                items.forEach(item => {
+                    const content = item.textContent.toLowerCase();
+                    
+                    if (content.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Générer les étiquettes
+            document.getElementById('generateLabelsBtn').addEventListener('click', () => {
+                this.generateLabels();
+            });
+            
+            // Imprimer les étiquettes
+            document.getElementById('printLabelsBtn').addEventListener('click', () => {
+                this.printLabels();
+            });
+            
+            // Sauvegarde et restauration
+            document.getElementById('backupBtn').addEventListener('click', () => {
+                this.backupData();
+            });
+            
+            document.getElementById('restoreBtn').addEventListener('click', () => {
+                const fileInput = document.getElementById('restoreFile');
+                if (fileInput.files.length === 0) {
+                    this.showToast('Aucun fichier sélectionné', 'warning');
+                    return;
+                }
+                
+                this.restoreData(fileInput.files[0]);
+            });
+            
+            // Support des raccourcis clavier
+            document.addEventListener('keydown', (e) => {
+                // Valider la vente avec Entrée si on est sur l'onglet ventes
+                if (e.key === 'Enter' && document.getElementById('sales').classList.contains('active')) {
+                    // Seulement si aucun modal n'est ouvert
+                    if (!document.querySelector('.modal.show')) {
+                        this.validateSale();
+                    }
+                }
+            });
+            
+            // Initialiser le scanner QR
+            this.initQRScanner();
+        },
+        
+        // Méthode utilitaire pour afficher des ventes filtrées
+        renderFilteredSales: function(sales) {
+            const historyContainer = document.getElementById('salesHistory');
+            historyContainer.innerHTML = '';
+            
+            if (sales.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center text-muted"><i>Aucune vente pour cette période</i></div>';
+                return;
+            }
+            
+            // Trier par date (plus récent en premier)
+            const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedSales.forEach(sale => {
+                const saleItem = document.createElement('a');
+                saleItem.href = '#';
+                saleItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-start';
+                saleItem.dataset.id = sale.id;
+                
+                const productsCount = sale.products.reduce((sum, p) => sum + p.quantity, 0);
+                
+                saleItem.innerHTML = `
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">${this.formatDate(sale.date)}</div>
+                        <small>${productsCount} article(s)</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">${this.formatPrice(sale.totalAmount)}</span>
+                `;
+                
+                saleItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.showSaleDetails(sale.id);
+                });
+                
+                historyContainer.appendChild(saleItem);
+            });
+        },
+        // Ajoutez ces méthodes à l'objet ViewModel
+
+        // Import Excel
+        importProductsFromExcel: function(file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    // Convertir les données du fichier en workbook
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Récupérer la première feuille
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convertir la feuille en JSON
+                    const productsData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (productsData.length === 0) {
+                        this.showToast('Aucun produit trouvé dans le fichier', 'warning');
+                        return;
+                    }
+                    
+                    // Compter les produits ajoutés et mis à jour
+                    let addedCount = 0;
+                    let updatedCount = 0;
+                    
+                    // Récupérer tous les produits existants
+                    const existingProducts = Model.getProducts();
+                    
+                    // Traiter chaque ligne comme un produit
+                    productsData.forEach(row => {
+                        // Convertir les en-têtes Excel en propriétés de produit
+                        const productData = {
+                            brand: row['Marque'] || row['marque'] || row['MARQUE'] || '',
+                            name: row['Nom'] || row['nom'] || row['NOM'] || '',
+                            origin: row['Origine'] || row['origine'] || row['ORIGINE'] || '',
+                            vitola: row['Vitole'] || row['vitole'] || row['VITOLE'] || '',
+                            wrapper: row['Cape'] || row['cape'] || row['CAPE'] || '',
+                            binder: row['Sous-cape'] || row['sous-cape'] || row['SOUS-CAPE'] || '',
+                            filler: row['Tripe'] || row['tripe'] || row['TRIPE'] || '',
+                            strength: row['Force'] || row['force'] || row['FORCE'] || 'Moyenne',
+                            quantity: parseInt(row['Quantité'] || row['quantité'] || row['QUANTITÉ'] || 0),
+                            price: parseFloat(row['Prix'] || row['prix'] || row['PRIX'] || 0),
+                            supplier: row['Fournisseur'] || row['fournisseur'] || row['FOURNISSEUR'] || ''
+                        };
+                        
+                        // Validation minimale
+                        if (!productData.brand || !productData.name) {
+                            console.warn('Produit ignoré (nom ou marque manquant):', row);
+                            return;
+                        }
+                        
+                        // Créer un identifiant composite basé sur la marque et le nom
+                        const productKey = `${productData.brand}-${productData.name}`;
+                        
+                        // Chercher si le produit existe déjà
+                        const existingProduct = existingProducts.find(p => 
+                            p.brand.toLowerCase() === productData.brand.toLowerCase() && 
+                            p.name.toLowerCase() === productData.name.toLowerCase()
+                        );
+                        
+                        if (existingProduct) {
+                            // Mise à jour
+                            productData.id = existingProduct.id;
+                            Model.updateProduct(productData);
+                            updatedCount++;
+                        } else {
+                            // Nouveau produit
+                            Model.addProduct(productData);
+                            addedCount++;
+                        }
+                    });
+                    
+                    // Rafraîchir l'interface
+                    this.refreshProductTable();
+                    this.refreshLabelProductsList();
+                    this.updateStatisticsFilters();
+                    
+                    // Afficher un résumé
+                    this.showToast(`Importation réussie: ${addedCount} produits ajoutés, ${updatedCount} mis à jour`);
+                    
+                    // Fermer le modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('importExportModal'));
+                    modal.hide();
+                    
+                } catch (error) {
+                    console.error('Erreur lors de l\'importation:', error);
+                    this.showToast('Erreur lors de l\'importation du fichier', 'error');
+                }
+            };
+            
+            reader.onerror = () => {
+                this.showToast('Erreur de lecture du fichier', 'error');
+            };
+            
+            // Lire le fichier comme un ArrayBuffer (requis pour XLSX)
+            reader.readAsArrayBuffer(file);
+        },
+        generateCustomId: function(brand, name) {
+            // Créer un ID basé sur la marque et le nom (slugifié)
+            const slug = (brand + '-' + name)
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '') // Supprimer les caractères spéciaux
+                .replace(/\s+/g, '-')     // Remplacer les espaces par des tirets
+                .replace(/--+/g, '-')     // Éviter les tirets multiples
+                .trim();
+            
+            // Ajouter un timestamp pour garantir l'unicité
+            return `${slug}-${Date.now()}`;
+        },
+
+        // Export Excel
+        exportProductsToExcel: function() {
+            const products = Model.getProducts();
+            
+            if (products.length === 0) {
+                this.showToast('Aucun produit à exporter', 'warning');
+                return;
+            }
+            
+            // Convertir les produits en format pour l'export, incluant l'ID personnalisé
+            const exportData = products.map(product => ({
+                'ID': product.customId || this.generateCustomId(product.brand, product.name),
+                'Marque': product.brand,
+                'Nom': product.name,
+                'Origine': product.origin,
+                'Vitole': product.vitola,
+                'Cape': product.wrapper,
+                'Sous-cape': product.binder,
+                'Tripe': product.filler,
+                'Force': product.strength,
+                'Quantité': product.quantity,
+                'Prix': product.price,
+                'Fournisseur': product.supplier
+            }));
+            
+            // Créer le classeur Excel
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            
+            // Ajouter la feuille au classeur
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Produits');
+            
+            // Générer et télécharger le fichier
+            XLSX.writeFile(workbook, 'Produits_Le_Diplomate.xlsx');
+            
+            this.showToast('Export Excel réussi');
+            
+            // Fermer le modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('importExportModal'));
+            modal.hide();
+        },
+    };
+    // Initialiser l'application au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+        ViewModel.init();
+    });
+    </script>
+</body>
+</html>
