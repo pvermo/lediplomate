@@ -2420,94 +2420,121 @@
             // Référence à l'élément modal et bouton
             const scannerModal = document.getElementById('scannerModal');
             const scanQrBtn = document.getElementById('scanQrBtn');
+            const statusDiv = document.getElementById('scannerStatus');
             
-            // Vérifier si le scanner est déjà initialisé
-            let scanner = null;
-            
-            // Fonction pour initialiser le scanner uniquement quand nécessaire
-            function startScanner() {
-                console.log("Tentative de démarrage du scanner...");
-                
-                // S'assurer que l'élément video existe
-                const videoElement = document.getElementById('qrScanner');
-                if (!videoElement) {
-                    console.error("Élément vidéo introuvable");
-                    self.showToast("Erreur: élément vidéo non trouvé", "error");
-                    return;
-                }
-                
-                try {
-                    // Créer une nouvelle instance du scanner seulement si nécessaire
-                    if (!scanner) {
-                        scanner = new Html5Qrcode('qrScanner');
-                    }
-                    
-                    // Vérifier si la caméra est disponible
-                    Html5Qrcode.getCameras().then(devices => {
-                        if (devices && devices.length) {
-                            console.log("Caméras détectées:", devices.length);
-                            
-                            // Configuration du scanner
-                            const config = {
-                                fps: 10,
-                                qrbox: { width: 200, height: 200 },
-                                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
-                            };
-                            
-                            // Utiliser la caméra arrière si disponible
-                            const cameraId = devices.length > 1 ? devices[1].id : devices[0].id;
-                            
-                            // Demander explicitement l'autorisation et démarrer le scanner
-                            scanner.start(
-                                { deviceId: { exact: cameraId } },
-                                config,
-                                (decodedText) => {
-                                    console.log("QR Code scanné:", decodedText);
-                                    self.onQRCodeScanned(decodedText);
-                                },
-                                (errorMessage) => {
-                                    // Gérer silencieusement les erreurs de lecture de QR
-                                }
-                            ).catch(err => {
-                                console.error("Erreur au démarrage du scanner:", err);
-                                self.showToast("Impossible d'accéder à la caméra. Vérifiez les autorisations du navigateur.", "error");
-                                
-                                // Essayer en mode de secours avec la caméra par défaut
-                                scanner.start(
-                                    { facingMode: "environment" },
-                                    config,
-                                    (decodedText) => {
-                                        console.log("QR Code scanné (mode secours):", decodedText);
-                                        self.onQRCodeScanned(decodedText);
-                                    },
-                                    (errorMessage) => {
-                                        // Gérer silencieusement les erreurs de lecture de QR
-                                    }
-                                ).catch(err => {
-                                    console.error("Échec du mode de secours:", err);
-                                    self.showToast("Impossible d'initialiser la caméra", "error");
-                                });
-                            });
-                        } else {
-                            console.error("Aucune caméra détectée");
-                            self.showToast("Aucune caméra détectée sur votre appareil", "error");
-                        }
-                    }).catch(err => {
-                        console.error("Erreur lors de la détection des caméras:", err);
-                        self.showToast("Impossible d'accéder aux caméras", "error");
-                    });
-                } catch (error) {
-                    console.error("Erreur générale du scanner:", error);
-                    self.showToast("Erreur d'initialisation du scanner", "error");
-                }
+            // Vérifier si la bibliothèque est disponible
+            if (typeof Html5Qrcode === 'undefined') {
+                console.error("La bibliothèque Html5Qrcode n'est pas chargée");
+                scanQrBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    self.showToast("Scanner QR non disponible (bibliothèque manquante)", "error");
+                });
+                return;
             }
             
             // Quand le modal est affiché
             scannerModal.addEventListener('shown.bs.modal', function() {
-                console.log("Modal scanner affiché");
+                // Afficher l'indicateur de chargement et le statut
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.textContent = "Vérification de l'accès à la caméra...";
+                }
                 
-                // Démarrer le scanner avec un court délai pour s'assurer que le DOM est prêt
-                setTimeout(startScanner, 300);
+                // Vérifier si l'API est disponible
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    self.showToast("API caméra non supportée par ce navigateur", "error");
+                    if (statusDiv) {
+                        statusDiv.textContent = "Caméra non supportée par ce navigateur";
+                        statusDiv.className = "alert alert-danger mt-3";
+                    }
+                    return;
+                }
+                
+                // Demander l'accès à la caméra explicitement d'abord
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                })
+                .then(function(stream) {
+                    // Accès réussi, arrêter immédiatement le flux
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    if (statusDiv) {
+                        statusDiv.textContent = "Accès à la caméra autorisé, démarrage du scanner...";
+                        statusDiv.className = "alert alert-success mt-3";
+                    }
+                    
+                    // Initialiser le scanner après un court délai
+                    setTimeout(() => {
+                        try {
+                            // Créer une instance du scanner
+                            const html5QrcodeScanner = new Html5Qrcode("qrScanner");
+                            
+                            // Configuration simplifiée
+                            const config = {
+                                fps: 10,
+                                qrbox: { width: 250, height: 250 }
+                            };
+                            
+                            // Démarrer le scanner avec la caméra arrière
+                            html5QrcodeScanner.start(
+                                { facingMode: "environment" },
+                                config,
+                                (decodedText) => {
+                                    // Succès
+                                    console.log("QR Code scanné:", decodedText);
+                                    
+                                    // Arrêter le scanner et fermer le modal
+                                    html5QrcodeScanner.stop().then(() => {
+                                        console.log("Scanner arrêté avec succès");
+                                        
+                                        // Fermer le modal
+                                        const modal = bootstrap.Modal.getInstance(scannerModal);
+                                        if (modal) modal.hide();
+                                        
+                                        // Traiter le code QR après la fermeture du modal
+                                        setTimeout(() => {
+                                            self.processScannedQRCode(decodedText);
+                                        }, 500);
+                                    });
+                                },
+                                (errorMessage) => {
+                                    // Ignorer les erreurs normales de scan (se produisent constamment)
+                                }
+                            ).catch(error => {
+                                console.error("Erreur de démarrage du scanner:", error);
+                                if (statusDiv) {
+                                    statusDiv.textContent = "Erreur de démarrage: " + error.message;
+                                    statusDiv.className = "alert alert-danger mt-3";
+                                }
+                                self.showToast("Erreur de démarrage du scanner: " + error.message, "error");
+                            });
+                            
+                            // Stocker la référence pour l'arrêter plus tard
+                            self.qrScanner = html5QrcodeScanner;
+                            
+                            if (statusDiv) {
+                                statusDiv.textContent = "Scanner actif - positionnez un QR code devant la caméra";
+                                statusDiv.className = "alert alert-info mt-3";
+                            }
+                            
+                        } catch (error) {
+                            console.error("Erreur d'initialisation du scanner:", error);
+                            if (statusDiv) {
+                                statusDiv.textContent = "Erreur d'initialisation: " + error.message;
+                                statusDiv.className = "alert alert-danger mt-3";
+                            }
+                            self.showToast("Erreur d'initialisation du scanner", "error");
+                        }
+                    }, 1000);
+                })
+                .catch(function(error) {
+                    console.error("Erreur d'accès à la caméra:", error);
+                    if (statusDiv) {
+                        statusDiv.textContent = "Accès à la caméra refusé: " + error.message;
+                        statusDiv.className = "alert alert-danger mt-3";
+                    }
+                    self.showToast("Accès à la caméra refusé: " + error.message, "error");
+                });
             });
             
             // Quand le modal est fermé
@@ -2515,24 +2542,35 @@
                 console.log("Modal scanner fermé");
                 
                 // Arrêter le scanner s'il est en cours
-                if (scanner && scanner.isScanning) {
-                    scanner.stop()
-                    .then(() => console.log("Scanner arrêté avec succès"))
-                    .catch(err => console.error("Erreur lors de l'arrêt du scanner:", err));
+                if (self.qrScanner) {
+                    try {
+                        self.qrScanner.stop().then(() => {
+                            console.log("Scanner arrêté avec succès");
+                        }).catch(err => {
+                            console.error("Erreur lors de l'arrêt du scanner:", err);
+                        });
+                    } catch (error) {
+                        console.error("Erreur lors de l'arrêt du scanner:", error);
+                    }
                 }
             });
+        },
+
+        // Nouvelle méthode pour traiter le code QR scanné
+        processScannedQRCode: function(decodedText) {
+            const productId = String(decodedText).trim();
+            console.log("Traitement du QR Code scanné:", productId);
             
-            // Gérer les erreurs potentielles de chargement de la bibliothèque
-            if (typeof Html5Qrcode === 'undefined') {
-                console.error("La bibliothèque Html5Qrcode n'est pas chargée");
-                
-                // Vérifier si le bouton de scan existe
-                if (scanQrBtn) {
-                    scanQrBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        self.showToast("Scanner QR non disponible sur cet appareil", "error");
-                    });
-                }
+            // Essayer de trouver le produit correspondant
+            const product = Model.findProductById(productId);
+            
+            if (product) {
+                console.log("Produit trouvé par scan QR:", product);
+                this.addToCart(productId, 1);
+                this.showToast(`${product.brand} ${product.name} ajouté au panier`);
+            } else {
+                console.error("Produit non trouvé par scan QR:", productId);
+                this.showToast('Produit non reconnu', 'warning');
             }
         },
 
