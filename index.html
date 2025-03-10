@@ -1066,6 +1066,109 @@
             
             return null;
         },
+        Model.enhancedFindProductById = function(productId) {
+            // Assurez-vous que productId est une chaîne
+            productId = String(productId || '').trim();
+            console.log("Recherche du produit avec ID:", productId);
+            
+            // Récupérer tous les produits
+            const products = this.getProducts();
+            
+            // 1. Recherche directe par ID
+            const directMatch = products.find(p => String(p.id).trim() === productId);
+            if (directMatch) {
+                console.log(`Produit trouvé par ID direct: ${directMatch.brand} ${directMatch.name}`);
+                return directMatch;
+            }
+            
+            // 2. Recherche par ID personnalisé
+            const customIdMatch = products.find(p => p.customId && String(p.customId).trim() === productId);
+            if (customIdMatch) {
+                console.log(`Produit trouvé par ID personnalisé: ${customIdMatch.brand} ${customIdMatch.name}`);
+                return customIdMatch;
+            }
+            
+            // 3. Vérifier si l'ID semble être une combinaison marque-nom
+            if (productId.includes('-')) {
+                try {
+                    // Essayer d'extraire marque et nom de l'ID composite
+                    const parts = productId.split('-');
+                    
+                    // Si nous avons au moins deux parties
+                    if (parts.length >= 2) {
+                        const brand = parts[0].trim().toLowerCase();
+                        // Le nom peut contenir plusieurs tirets, donc on rejoint tout ce qui reste
+                        const name = parts.slice(1).join('-').trim().toLowerCase();
+                        
+                        console.log(`Recherche par marque-nom composite: Marque="${brand}", Nom="${name}"`);
+                        
+                        // Rechercher par marque et nom (correspondance exacte d'abord)
+                        const exactMatch = products.find(p => 
+                            p.brand.toLowerCase() === brand && 
+                            p.name.toLowerCase() === name
+                        );
+                        
+                        if (exactMatch) {
+                            console.log(`Produit trouvé par correspondance exacte: ${exactMatch.brand} - ${exactMatch.name}`);
+                            return exactMatch;
+                        }
+                        
+                        // Recherche approximative (contient)
+                        const approximateMatch = products.find(p => 
+                            p.brand.toLowerCase().includes(brand) && 
+                            p.name.toLowerCase().includes(name)
+                        );
+                        
+                        if (approximateMatch) {
+                            console.log(`Produit trouvé par correspondance approximative: ${approximateMatch.brand} - ${approximateMatch.name}`);
+                            return approximateMatch;
+                        }
+                        
+                        // Ordre inverse (nom-marque)
+                        const inverseMatch = products.find(p => 
+                            p.name.toLowerCase().includes(brand) && 
+                            p.brand.toLowerCase().includes(name)
+                        );
+                        
+                        if (inverseMatch) {
+                            console.log(`Produit trouvé par ordre inverse: ${inverseMatch.brand} - ${inverseMatch.name}`);
+                            return inverseMatch;
+                        }
+                        
+                        // Match partiel (juste marque ou nom)
+                        const partialMatch = products.find(p => 
+                            p.brand.toLowerCase().includes(brand) || 
+                            p.name.toLowerCase().includes(name)
+                        );
+                        
+                        if (partialMatch) {
+                            console.log(`Produit trouvé par correspondance partielle: ${partialMatch.brand} - ${partialMatch.name}`);
+                            return partialMatch;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de l'analyse de l'ID composite:", error);
+                }
+            }
+            
+            // 4. Recherche générale dans toutes les propriétés des produits
+            for (let product of products) {
+                // Vérifier si l'ID est contenu dans une des propriétés principales
+                if (
+                    product.brand.toLowerCase().includes(productId.toLowerCase()) ||
+                    product.name.toLowerCase().includes(productId.toLowerCase()) ||
+                    (product.brand + ' ' + product.name).toLowerCase().includes(productId.toLowerCase()) ||
+                    (product.brand + '-' + product.name).toLowerCase().includes(productId.toLowerCase())
+                ) {
+                    console.log(`Produit trouvé par recherche générale: ${product.brand} ${product.name}`);
+                    return product;
+                }
+            }
+            
+            console.warn(`Aucun produit trouvé pour ID: ${productId}`);
+            return null;
+        },
+
 
         migrateExistingData: function() {
             // Récupérer tous les produits
@@ -2738,16 +2841,16 @@
             const productId = String(decodedText).trim();
             console.log("Traitement du QR Code scanné:", productId);
             
-            // Essayer de trouver le produit correspondant
-            const product = Model.findProductById(productId);
+            // Utiliser la fonction améliorée pour trouver le produit
+            const product = Model.enhancedFindProductById(productId);
             
             if (product) {
                 console.log("Produit trouvé par scan QR:", product);
-                this.addToCart(productId, 1);
+                this.addToCart(product.id, 1); // Utiliser product.id pour garantir la consistance
                 this.showToast(`${product.brand} ${product.name} ajouté au panier`);
             } else {
                 console.error("Produit non trouvé par scan QR:", productId);
-                this.showToast('Produit non reconnu', 'warning');
+                this.showToast('Produit non reconnu. Essayez une recherche manuelle.', 'warning');
             }
         },
 
