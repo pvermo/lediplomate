@@ -1245,3 +1245,50 @@ body {
     height: 300px !important;
     max-height: 300px !important;
 }
+/* Indicateur de scanner externe */
+#externalScannerIndicator {
+    display: none;
+}
+
+#externalScannerIndicator.active {
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+/* Style pour les boutons de tri */
+.cart-filters .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.cart-filters .sort-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.cart-filters .sort-button.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Optimisations pour les petits écrans */
+@media (max-width: 576px) {
+    .cart-filters .btn-group {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .cart-filters .sort-button {
+        flex: 1;
+        max-width: 100px;
+    }
+}

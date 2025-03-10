@@ -38,6 +38,14 @@ async function initApp() {
         // Mettre à jour le nombre total de produits
         updateProductCount();
         
+        // Mettre le focus sur le champ de scanner externe après un court délai
+        setTimeout(() => {
+            const scannerInput = document.getElementById('externalScannerInput');
+            if (scannerInput) {
+                scannerInput.focus();
+            }
+        }, 1000);
+        
         console.log('Application initialisée avec succès');
     } catch (error) {
         console.error('Erreur lors de l\'initialisation de l\'application:', error);
@@ -90,37 +98,6 @@ function initEventListeners() {
     importFullDataBtn.addEventListener('click', importFullData);
 }
 // Ajoutez cette fonction pour mettre à jour le compteur à chaque fois que la section des produits est affichée
-function switchSection(sectionId, title) {
-    // Masquer toutes les sections
-    contentSections.forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // Désactiver tous les éléments du menu
-    sidebarItems.forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    // Activer la section et l'élément de menu correspondants
-    document.getElementById(sectionId).classList.add('active');
-    document.querySelector(`[data-target="${sectionId}"]`).classList.add('active');
-    
-    // Mettre à jour le titre
-    currentSectionTitle.textContent = title;
-    
-    // Recharger les données si nécessaire
-    if (sectionId === 'products-section') {
-        productManager.loadProducts();
-        updateProductCount();
-    } else if (sectionId === 'history-section') {
-        historyManager.loadSales();
-    } else if (sectionId === 'stats-section') {
-        statsManager.loadStats();
-    } else if (sectionId === 'labels-section') {
-        labelsManager.loadProducts();
-    }
-}
-
 /**
  * Change la section active
  * @param {string} sectionId - ID de la section à afficher
@@ -144,6 +121,22 @@ function switchSection(sectionId, title) {
     // Mettre à jour le titre
     currentSectionTitle.textContent = title;
     
+    // Si section des ventes, activer le focus sur le scanner
+    if (sectionId === 'sales-section') {
+        setTimeout(() => {
+            const scannerInput = document.getElementById('externalScannerInput');
+            if (scannerInput) {
+                scannerInput.focus();
+            }
+        }, 100);
+    }
+    // Si on quitte la section des ventes, nettoyer le scanner
+    if (document.getElementById('sales-section').classList.contains('active') && 
+        sectionId !== 'sales-section') {
+        if (salesManager.cleanupScanner) {
+            salesManager.cleanupScanner();
+        }
+    }
     // Recharger les données si nécessaire
     if (sectionId === 'products-section') {
         productManager.loadProducts();

@@ -30,11 +30,190 @@ class SalesManager {
         this.cart = [];
         this.scannerActive = false;
         this.isScannerReady = false;
+        this.sortBy = 'name'; // Tri par défaut
         
         // Initialiser les événements
         this.initEventListeners();
+        this.initExternalScanner();
+        this.scannerFocusInterval = null;
     }
-    
+    cleanupScanner() {
+        if (this.scannerFocusInterval) {
+            clearInterval(this.scannerFocusInterval);
+            this.scannerFocusInterval = null;
+        }
+    }
+    /**
+     * Initialise le scanner externe de codes-barres
+     */
+    initExternalScanner() {
+        // Créer un champ caché pour recevoir les entrées du scanner
+        const scannerIndicator = document.getElementById('externalScannerIndicator');
+        if (scannerIndicator) {
+            scannerIndicator.classList.add('active');
+        }
+        
+        // Si l'input existe déjà, ne pas le recréer
+        let scannerInput = document.getElementById('externalScannerInput');
+        if (!scannerInput) {
+            scannerInput = document.createElement('input');
+            scannerInput.type = 'text';
+            scannerInput.id = 'externalScannerInput';
+            scannerInput.setAttribute('autocomplete', 'off');
+            scannerInput.style.opacity = '0';
+            scannerInput.style.position = 'absolute';
+            scannerInput.style.top = '0';
+            scannerInput.style.left = '0';
+            scannerInput.style.pointerEvents = 'none';
+            scannerInput.style.width = '1px';
+            scannerInput.style.height = '1px';
+            document.body.appendChild(scannerInput);
+        }
+        
+        // Ajouter des gestionnaires d'événements pour debug
+        console.log('Scanner input initialized:', scannerInput);
+        
+        // Gestion du focus
+        scannerInput.addEventListener('focus', () => {
+            console.log('Scanner input focused');
+            if (scannerIndicator) {
+                scannerIndicator.classList.add('active');
+            }
+        });
+
+        scannerInput.addEventListener('blur', () => {
+            console.log('Scanner input lost focus');
+            if (scannerIndicator) {
+                scannerIndicator.classList.remove('active');
+            }
+            // Essayer de récupérer le focus après un court délai
+            setTimeout(() => {
+                if (document.getElementById('sales-section').classList.contains('active')) {
+                    scannerInput.focus();
+                }
+            }, 100);
+        });
+        
+        // Capturer les données du scanner
+        let scanBuffer = '';
+        let scanTimeout = null;
+        
+        scannerInput.addEventListener('input', (e) => {
+            // Ajouter le caractère au buffer
+            scanBuffer += e.data || '';
+            
+            // Réinitialiser le timeout
+            clearTimeout(scanTimeout);
+            
+            // Définir un timeout pour traiter le code après un court délai
+            // Cela permet de capturer des codes qui n'envoient pas forcément d'Entrée
+            scanTimeout = setTimeout(() => {
+                if (scanBuffer.length > 0) {
+                    console.log('Processing scan buffer:', scanBuffer);
+                    this.processScanCode(scanBuffer);
+                    scanBuffer = '';
+                }
+            }, 50); // Délai court pour les scanners rapides
+        });
+        
+        // Gérer la touche Entrée explicitement
+        scannerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Empêcher le formulaire de s'envoyer
+                console.log('Enter key pressed with value:', scannerInput.value);
+                
+                clearTimeout(scanTimeout);
+                
+                if (scannerInput.value) {
+                    this.processScanCode(scannerInput.value);
+                    scannerInput.value = '';
+                    scanBuffer = '';
+                } else if (scanBuffer) {
+                    this.processScanCode(scanBuffer);
+                    scanBuffer = '';
+                }
+            }
+        });
+        
+        // S'assurer que le champ garde le focus périodiquement
+        this.scannerFocusInterval = setInterval(() => {
+            // Seulement si la section des ventes est active
+            if (document.getElementById('sales-section').classList.contains('active')) {
+                scannerInput.focus();
+                console.log('Refocusing scanner input');
+            }
+        }, 2000);
+        
+        // Focus initial
+        setTimeout(() => {
+            scannerInput.focus();
+            console.log('Initial focus set on scanner input');
+        }, 500);
+    }
+
+    // Nouvelle méthode pour traiter le code scanné
+    processScanCode(scannedCode) {
+        scannedCode = scannedCode.trim();
+        console.log('Processing scanned code:', scannedCode);
+        
+        if (!scannedCode) return;
+        
+        // Essayer de convertir en nombre pour l'ID du produit
+        try {
+            const productId = parseInt(scannedCode);
+            
+            if (isNaN(productId)) {
+                console.error('Code scanné non valide:', scannedCode);
+                return;
+            }
+            
+            // Rechercher le produit et l'ajouter au panier
+            this.findAndAddProductToCart(productId);
+            
+        } catch (error) {
+            console.error('Erreur lors du traitement du code scanné:', error);
+            alert(`Erreur lors du traitement du code scanné: ${error.message}`);
+        }
+    }
+
+    // Méthode pour rechercher un produit et l'ajouter au panier
+    async findAndAddProductToCart(productId) {
+        try {
+            const product = await productManager.getProductById(productId);
+            
+            if (!product) {
+                alert(`Produit non trouvé avec l'ID: ${productId}`);
+                return;
+            }
+            
+            // Vérifier le stock
+            if (product.stock <= 0) {
+                alert(`${product.brand} ${product.name} n'est plus en stock.`);
+                return;
+            }
+            
+            // Ajouter au panier
+            this.addToCart(product);
+            
+            // Jouer un son si l'option est activée
+            if (document.getElementById('enableSounds')?.checked) {
+                this.playSound('success');
+            }
+            
+        } catch (error) {
+            console.error('Erreur lors de la recherche du produit:', error);
+            alert(`Erreur: ${error.message}`);
+        }
+    }
+    updateSortButtons(activeSort) {
+        // Retirer la classe active de tous les boutons
+        document.querySelectorAll('.sort-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        
+        // Ajouter la classe active au bouton sélectionné
+        document.getElementById(`sortBy${activeSort.charAt(0).toUpperCase() + activeSort.slice(1)}`).classList.add('active');
+    }
     /**
      * Initialise les écouteurs d'événements
      */
@@ -45,8 +224,29 @@ class SalesManager {
         
         // Recherche et tri
         this.salesProductSearch.addEventListener('input', () => this.searchProducts());
-        this.cartSortBy.addEventListener('change', () => this.renderCart());
+        document.getElementById('sortByName').addEventListener('click', () => {
+            this.sortBy = 'name';
+            this.updateSortButtons('name');
+            this.renderCart();
+        });
         
+        document.getElementById('sortByBrand').addEventListener('click', () => {
+            this.sortBy = 'brand';
+            this.updateSortButtons('brand');
+            this.renderCart();
+        });
+        
+        document.getElementById('sortByCountry').addEventListener('click', () => {
+            this.sortBy = 'country';
+            this.updateSortButtons('country');
+            this.renderCart();
+        });
+        
+        document.getElementById('sortBySupplier').addEventListener('click', () => {
+            this.sortBy = 'supplier';
+            this.updateSortButtons('supplier');
+            this.renderCart();
+        });        
         // QR Scanner
         this.toggleScannerBtn.addEventListener('click', () => this.toggleQrScanner());
         this.closeQrScannerBtn.addEventListener('click', () => this.closeQrScanner());
@@ -367,7 +567,7 @@ class SalesManager {
         }
         
         // Trier les articles du panier
-        const sortBy = this.cartSortBy.value;
+        const sortBy = this.sortBy || 'name'; // Utiliser this.sortBy au lieu de this.cartSortBy.value
         this.cart.sort((a, b) => {
             switch (sortBy) {
                 case 'name':

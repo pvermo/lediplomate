@@ -63,6 +63,10 @@
                         <button id="toggleScannerBtn" class="btn btn-primary">
                             <i class="fas fa-qrcode"></i> Scanner QR
                         </button>
+                        <!-- Indicateur de scanner externe -->
+                        <span id="externalScannerIndicator" class="ms-2 badge bg-success">
+                            <i class="fas fa-barcode"></i> Scanner externe prêt
+                        </span>
                     </div>
                 </div>
             </header>
@@ -97,12 +101,20 @@
                     <div class="cart-header">
                         <h4>Panier en cours</h4>
                         <div class="cart-filters">
-                            <select id="cartSortBy" class="form-select">
-                                <option value="name">Trier par nom</option>
-                                <option value="brand">Trier par marque</option>
-                                <option value="country">Trier par pays</option>
-                                <option value="supplier">Trier par fournisseur</option>
-                            </select>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Trier par">
+                                <button id="sortByName" class="btn btn-outline-primary sort-button active">
+                                    <i class="fas fa-font"></i> Nom
+                                </button>
+                                <button id="sortByBrand" class="btn btn-outline-primary sort-button">
+                                    <i class="fas fa-trademark"></i> Marque
+                                </button>
+                                <button id="sortByCountry" class="btn btn-outline-primary sort-button">
+                                    <i class="fas fa-globe-americas"></i> Pays
+                                </button>
+                                <button id="sortBySupplier" class="btn btn-outline-primary sort-button">
+                                    <i class="fas fa-truck"></i> Fournisseur
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="cart-items" id="cartItems">
