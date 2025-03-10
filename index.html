@@ -913,6 +913,14 @@
                 date: new Date().toISOString()
             };
         },
+        generateCompatibleId: function(brand, name) {
+            return (brand.trim() + '-' + name.trim())
+                .toLowerCase()
+                .replace(/\s+/g, '-')   // Remplacer les espaces par des tirets
+                .replace(/[^\w\-]/g, '') // Supprimer les caractères spéciaux sauf tirets
+                .replace(/--+/g, '-')    // Éviter les tirets multiples
+                .trim();
+        },
 
         restoreData: function(backupData) {
             if (backupData.products && Array.isArray(backupData.products)) {
@@ -1068,13 +1076,13 @@
         },
         enhancedFindProductById: function(productId) {
             // Assurez-vous que productId est une chaîne
-            productId = String(productId || '').trim();
+            productId = String(productId || '').trim().toLowerCase();
             console.log("Recherche du produit avec ID:", productId);
             
             // Récupérer tous les produits
             const products = this.getProducts();
             
-            // 1. Recherche directe par ID
+            // 1. Recherche directe par ID système
             const directMatch = products.find(p => String(p.id).trim() === productId);
             if (directMatch) {
                 console.log(`Produit trouvé par ID direct: ${directMatch.brand} ${directMatch.name}`);
@@ -1082,84 +1090,50 @@
             }
             
             // 2. Recherche par ID personnalisé
-            const customIdMatch = products.find(p => p.customId && String(p.customId).trim() === productId);
+            const customIdMatch = products.find(p => p.customId && String(p.customId).trim().toLowerCase() === productId);
             if (customIdMatch) {
                 console.log(`Produit trouvé par ID personnalisé: ${customIdMatch.brand} ${customIdMatch.name}`);
                 return customIdMatch;
             }
             
-            // 3. Vérifier si l'ID semble être une combinaison marque-nom
-            if (productId.includes('-')) {
-                try {
-                    // Essayer d'extraire marque et nom de l'ID composite
-                    const parts = productId.split('-');
-                    
-                    // Si nous avons au moins deux parties
-                    if (parts.length >= 2) {
-                        const brand = parts[0].trim().toLowerCase();
-                        // Le nom peut contenir plusieurs tirets, donc on rejoint tout ce qui reste
-                        const name = parts.slice(1).join('-').trim().toLowerCase();
-                        
-                        console.log(`Recherche par marque-nom composite: Marque="${brand}", Nom="${name}"`);
-                        
-                        // Rechercher par marque et nom (correspondance exacte d'abord)
-                        const exactMatch = products.find(p => 
-                            p.brand.toLowerCase() === brand && 
-                            p.name.toLowerCase() === name
-                        );
-                        
-                        if (exactMatch) {
-                            console.log(`Produit trouvé par correspondance exacte: ${exactMatch.brand} - ${exactMatch.name}`);
-                            return exactMatch;
-                        }
-                        
-                        // Recherche approximative (contient)
-                        const approximateMatch = products.find(p => 
-                            p.brand.toLowerCase().includes(brand) && 
-                            p.name.toLowerCase().includes(name)
-                        );
-                        
-                        if (approximateMatch) {
-                            console.log(`Produit trouvé par correspondance approximative: ${approximateMatch.brand} - ${approximateMatch.name}`);
-                            return approximateMatch;
-                        }
-                        
-                        // Ordre inverse (nom-marque)
-                        const inverseMatch = products.find(p => 
-                            p.name.toLowerCase().includes(brand) && 
-                            p.brand.toLowerCase().includes(name)
-                        );
-                        
-                        if (inverseMatch) {
-                            console.log(`Produit trouvé par ordre inverse: ${inverseMatch.brand} - ${inverseMatch.name}`);
-                            return inverseMatch;
-                        }
-                        
-                        // Match partiel (juste marque ou nom)
-                        const partialMatch = products.find(p => 
-                            p.brand.toLowerCase().includes(brand) || 
-                            p.name.toLowerCase().includes(name)
-                        );
-                        
-                        if (partialMatch) {
-                            console.log(`Produit trouvé par correspondance partielle: ${partialMatch.brand} - ${partialMatch.name}`);
-                            return partialMatch;
-                        }
-                    }
-                } catch (error) {
-                    console.error("Erreur lors de l'analyse de l'ID composite:", error);
+            // 3. Vérifier si l'ID semble être une combinaison marque-nom (format standardisé)
+            // Cette recherche est maintenant renforcée pour gérer le format spécifique de l'app d'étiquettes
+            for (let product of products) {
+                // Générer l'ID compatible pour chaque produit
+                const compatibleId = this.generateCompatibleId(product.brand, product.name);
+                
+                if (compatibleId === productId) {
+                    console.log(`Produit trouvé par ID compatible: ${product.brand} ${product.name}`);
+                    return product;
                 }
             }
             
-            // 4. Recherche générale dans toutes les propriétés des produits
+            // 4. Recherche par partie d'ID (fallback)
+            if (productId.includes('-')) {
+                const parts = productId.split('-');
+                if (parts.length >= 2) {
+                    const brandPart = parts[0].trim();
+                    const namePart = parts.slice(1).join('-').trim();
+                    
+                    // Recherche approximative
+                    const fuzzyMatch = products.find(p => {
+                        const pBrand = p.brand.toLowerCase();
+                        const pName = p.name.toLowerCase();
+                        return (pBrand.includes(brandPart) || brandPart.includes(pBrand)) && 
+                               (pName.includes(namePart) || namePart.includes(pName));
+                    });
+                    
+                    if (fuzzyMatch) {
+                        console.log(`Produit trouvé par recherche approximative: ${fuzzyMatch.brand} ${fuzzyMatch.name}`);
+                        return fuzzyMatch;
+                    }
+                }
+            }
+            
+            // 5. Recherche générale (dernier recours)
             for (let product of products) {
-                // Vérifier si l'ID est contenu dans une des propriétés principales
-                if (
-                    product.brand.toLowerCase().includes(productId.toLowerCase()) ||
-                    product.name.toLowerCase().includes(productId.toLowerCase()) ||
-                    (product.brand + ' ' + product.name).toLowerCase().includes(productId.toLowerCase()) ||
-                    (product.brand + '-' + product.name).toLowerCase().includes(productId.toLowerCase())
-                ) {
+                if ((product.brand + ' ' + product.name).toLowerCase().includes(productId) ||
+                    productId.includes((product.brand + ' ' + product.name).toLowerCase())) {
                     console.log(`Produit trouvé par recherche générale: ${product.brand} ${product.name}`);
                     return product;
                 }
@@ -1168,6 +1142,7 @@
             console.warn(`Aucun produit trouvé pour ID: ${productId}`);
             return null;
         },
+        
         findProductByAttributes: function(attributes) {
             try {
                 // Si la chaîne est au format JSON, la parser
@@ -2905,29 +2880,16 @@
 // Nouvelle méthode pour traiter le code QR scanné
         processScannedQRCode: function(decodedText) {
             console.log("QR Code brut scanné:", decodedText);
-            const productId = String(decodedText).trim();
             
-            // Essayer d'abord de trouver par attributs (format JSON)
-            let product = null;
+            // Essayer d'abord de traiter comme un ID standardisé (le format de l'app d'étiquettes)
+            let productId = String(decodedText).trim().toLowerCase();
             
-            if (decodedText.startsWith('{')) {
-                console.log("QR code au format JSON détecté, recherche par attributs");
-                try {
-                    product = Model.findProductByAttributes(decodedText);
-                } catch (e) {
-                    console.error("Erreur lors de la recherche par attributs:", e);
-                }
-            }
-            
-            // Si non trouvé par attributs, essayer les méthodes traditionnelles
-            if (!product) {
-                console.log("Recherche par méthodes traditionnelles");
-                product = Model.enhancedFindProductById(productId);
-            }
+            // Essayer de trouver le produit avec la fonction améliorée
+            const product = Model.enhancedFindProductById(productId);
             
             if (product) {
                 console.log("Produit trouvé par scan QR:", product);
-                this.addToCart(product.id, 1); // Utiliser product.id pour garantir la consistance
+                this.addToCart(product.id, 1);
                 this.showToast(`${product.brand} ${product.name} ajouté au panier`);
             } else {
                 console.error("Produit non trouvé par scan QR:", productId);
