@@ -1142,7 +1142,7 @@
             console.warn(`Aucun produit trouvé pour ID: ${productId}`);
             return null;
         },
-        
+
         findProductByAttributes: function(attributes) {
             try {
                 // Si la chaîne est au format JSON, la parser
@@ -2877,7 +2877,7 @@
         },
 
         // Nouvelle méthode pour traiter le code QR scanné
-// Nouvelle méthode pour traiter le code QR scanné
+        // Nouvelle méthode pour traiter le code QR scanné
         processScannedQRCode: function(decodedText) {
             console.log("QR Code brut scanné:", decodedText);
             
@@ -2889,14 +2889,59 @@
             
             if (product) {
                 console.log("Produit trouvé par scan QR:", product);
-                this.addToCart(product.id, 1);
+                // Utiliser une méthode dédiée qui prend l'objet produit directement
+                this.addProductToCart(product, 1); 
                 this.showToast(`${product.brand} ${product.name} ajouté au panier`);
             } else {
                 console.error("Produit non trouvé par scan QR:", productId);
                 this.showToast('Produit non reconnu. Essayez une recherche manuelle.', 'warning');
             }
         },
-
+        addProductToCart: function(product, quantity = 1) {
+            if (!product) {
+                this.showToast('Produit introuvable', 'error');
+                return false;
+            }
+            
+            console.log("Produit ajouté directement:", product);
+            
+            // Vérifier le stock
+            if (product.quantity < quantity) {
+                this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
+                return false;
+            }
+            
+            // Vérifier si le produit est déjà dans le panier
+            const existingItemIndex = this.cartItems.findIndex(item => String(item.id).trim() === String(product.id).trim());
+            
+            if (existingItemIndex !== -1) {
+                // Si le total demandé dépasse le stock disponible
+                const existingItem = this.cartItems[existingItemIndex];
+                if (existingItem.quantity + quantity > product.quantity) {
+                    this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
+                    return false;
+                }
+                
+                // Mettre à jour la quantité
+                existingItem.quantity += quantity;
+            } else {
+                // Ajouter au panier
+                const newItem = {
+                    id: product.id,
+                    brand: product.brand,
+                    name: product.name,
+                    price: product.price,
+                    origin: product.origin,
+                    supplier: product.supplier,
+                    quantity: quantity
+                };
+                this.cartItems.push(newItem);
+            }
+            
+            // Rafraîchir l'affichage du panier
+            this.refreshCart();
+            return true;
+        },
         onQRCodeScanned: function(decodedText) {
             // Fermer d'abord le modal du scanner
             const modal = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
