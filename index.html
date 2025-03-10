@@ -914,6 +914,7 @@
             };
         },
         generateCompatibleId: function(brand, name) {
+            // Nettoyer et formater marque-nom en format standardisé
             return (brand.trim() + '-' + name.trim())
                 .toLowerCase()
                 .replace(/\s+/g, '-')   // Remplacer les espaces par des tirets
@@ -921,7 +922,6 @@
                 .replace(/--+/g, '-')    // Éviter les tirets multiples
                 .trim();
         },
-
         restoreData: function(backupData) {
             if (backupData.products && Array.isArray(backupData.products)) {
                 this.saveProducts(backupData.products);
@@ -946,12 +946,17 @@
         addProduct: function(product) {
             const products = this.getProducts();
             
-            // Générer un ID unique pour le produit
+            // Générer un ID système unique
             product.id = Date.now().toString();
             
-            // S'assurer qu'il y a un ID personnalisé
-            if (!product.customId) {
-                product.customId = product.id;
+            // Générer l'ID cohérent basé sur marque-nom
+            product.productId = this.generateCompatibleId(product.brand, product.name);
+            
+            // Vérifier si un produit avec le même productId existe déjà
+            const existingProduct = products.find(p => p.productId === product.productId);
+            if (existingProduct) {
+                console.warn(`Un produit avec l'ID ${product.productId} existe déjà.`);
+                // Vous pouvez décider de retourner null ou de continuer
             }
             
             products.push(product);
@@ -981,98 +986,78 @@
         },
         
         findProductById: function(productId) {
-            // Assurez-vous que productId est une chaîne
-            productId = String(productId || '').trim();
+            if (!productId) return null;
+            
+            // Normaliser l'ID
+            productId = String(productId).trim().toLowerCase();
             console.log("Recherche du produit avec ID:", productId);
             
-            // Récupérer tous les produits
             const products = this.getProducts();
             
-            // Vérifier si l'ID semble être une combinaison marque-nom (contient un tiret)
-            if (productId.includes('-')) {
-                try {
-                    // Essayer d'extraire marque et nom de l'ID composite
-                    const parts = productId.split('-');
+            // 1. Recherche par ID système (rétrocompatibilité)
+            const systemIdMatch = products.find(p => String(p.id).trim() === productId);
+            if (systemIdMatch) {
+                console.log(`Produit trouvé par ID système: ${systemIdMatch.brand} ${systemIdMatch.name}`);
+                return systemIdMatch;
+            }
+            
+            // 2. Recherche par ID produit (nouvelle méthode)
+            const productIdMatch = products.find(p => p.productId && p.productId.toLowerCase() === productId);
+            if (productIdMatch) {
+                console.log(`Produit trouvé par ID produit: ${productIdMatch.brand} ${productIdMatch.name}`);
+                return productIdMatch;
+            }
+            
+            // 3. Génération et recherche par ID compatible
+            for (const product of products) {
+                const compatibleId = this.generateCompatibleId(product.brand, product.name);
+                if (compatibleId === productId) {
+                    console.log(`Produit trouvé par ID compatible: ${product.brand} ${product.name}`);
                     
-                    // Si nous avons au moins deux parties
-                    if (parts.length >= 2) {
-                        const brand = parts[0].trim().toLowerCase();
-                        // Le nom peut contenir plusieurs tirets, donc on rejoint tout ce qui reste
-                        const name = parts.slice(1).join('-').trim().toLowerCase();
-                        
-                        console.log(`Recherche par marque-nom composite: Marque="${brand}", Nom="${name}"`);
-                        
-                        // Rechercher par marque et nom avec une correspondance approximative (insensible à la casse)
-                        const product = products.find(p => 
-                            p.brand.toLowerCase().includes(brand) && 
-                            p.name.toLowerCase().includes(name)
-                        );
-                        
-                        if (product) {
-                            console.log(`Produit trouvé par clé composite: ${product.brand} - ${product.name}`);
-                            return product;
-                        }
-                        
-                        // Essayer aussi le format inversé nom-marque
-                        const inverseProduct = products.find(p => 
-                            p.name.toLowerCase().includes(brand) && 
-                            p.brand.toLowerCase().includes(name)
-                        );
-                        
-                        if (inverseProduct) {
-                            console.log(`Produit trouvé par clé composite inversée: ${inverseProduct.brand} - ${inverseProduct.name}`);
-                            return inverseProduct;
-                        }
-                        
-                        // Essayer une recherche plus flexible (juste une des deux parties)
-                        const flexibleProduct = products.find(p => 
-                            p.brand.toLowerCase().includes(brand) || 
-                            p.name.toLowerCase().includes(name)
-                        );
-                        
-                        if (flexibleProduct) {
-                            console.log(`Produit trouvé par recherche flexible: ${flexibleProduct.brand} - ${flexibleProduct.name}`);
-                            return flexibleProduct;
-                        }
+                    // Mise à jour automatique du produit avec le productId
+                    if (!product.productId) {
+                        product.productId = compatibleId;
+                        this.updateProduct(product);
+                        console.log(`ProductId ajouté au produit: ${compatibleId}`);
                     }
-                } catch (error) {
-                    console.error("Erreur lors de l'analyse de l'ID composite:", error);
-                }
-            }
-            
-            // Recherche directe par ID
-            const directMatch = products.find(p => String(p.id).trim() === productId);
-            
-            if (directMatch) {
-                console.log(`Produit trouvé par ID direct: ${directMatch.brand} ${directMatch.name}`);
-                return directMatch;
-            }
-            
-            // Recherche par ID personnalisé (customId) si présent
-            const customIdMatch = products.find(p => p.customId && String(p.customId).trim() === productId);
-            
-            if (customIdMatch) {
-                console.log(`Produit trouvé par ID personnalisé: ${customIdMatch.brand} ${customIdMatch.name}`);
-                return customIdMatch;
-            }
-            
-            // Si on arrive ici, aucun produit n'a été trouvé
-            console.warn(`Aucun produit trouvé pour ID: ${productId}`);
-            
-            // En dernier recours, essayer une recherche générale (utile pour les QR codes)
-            for (let product of products) {
-                // Créer diverses formes d'identifiants possibles
-                const simplifiedId = `${product.brand}-${product.name}`.toLowerCase().replace(/\s+/g, '-');
-                const alternativeId = `${product.brand} ${product.name}`.toLowerCase();
-                
-                if (productId.toLowerCase() === simplifiedId || 
-                    productId.toLowerCase() === alternativeId) {
-                    console.log(`Produit trouvé par ID alternatif: ${product.brand} ${product.name}`);
+                    
                     return product;
                 }
             }
             
+            // 4. Recherche approximative en dernier recours
+            if (productId.includes('-')) {
+                const [brandPart, ...nameParts] = productId.split('-');
+                const namePart = nameParts.join('-');
+                
+                for (const product of products) {
+                    const pBrand = product.brand.toLowerCase();
+                    const pName = product.name.toLowerCase();
+                    
+                    if (pBrand.includes(brandPart) && pName.includes(namePart)) {
+                        console.log(`Produit trouvé par recherche approximative: ${product.brand} ${product.name}`);
+                        return product;
+                    }
+                }
+            }
+            
+            console.warn(`Aucun produit trouvé pour ID: ${productId}`);
             return null;
+        },
+        migrateProductIds: function() {
+            const products = this.getProducts();
+            let updatedCount = 0;
+            
+            products.forEach(product => {
+                if (!product.productId) {
+                    product.productId = this.generateCompatibleId(product.brand, product.name);
+                    this.updateProduct(product);
+                    updatedCount++;
+                }
+            });
+            
+            console.log(`Migration terminée: ${updatedCount} produits mis à jour avec productId`);
+            return updatedCount;
         },
         enhancedFindProductById: function(productId) {
             // Assurez-vous que productId est une chaîne
@@ -1363,6 +1348,21 @@
             // Configurer les écouteurs d'événements
             this.setupEventListeners();
             setTimeout(() => this.initQRScanner(), 500);
+        },
+        initWithMigration: function() {
+            // Exécuter la migration des IDs produits
+            const updatedCount = Model.migrateProductIds();
+            
+            if (updatedCount > 0) {
+                this.showToast(`${updatedCount} produits mis à jour avec de nouveaux IDs`, 'info');
+                
+                // Rafraîchir les vues
+                this.refreshProductTable();
+                this.refreshSalesHistory();
+                this.refreshStatistics();
+            }
+            
+            console.log("Initialisation avec migration terminée");
         },
         backupData: function() {
             const backupData = Model.backupData();
@@ -1839,11 +1839,12 @@
         cartItems: [],
         
         addToCart: function(productId, quantity = 1) {
-            // Assurez-vous que l'ID est une chaîne
+            // Normaliser l'ID
             productId = String(productId).trim();
             console.log("Ajout au panier du produit ID:", productId);
             
-            const product = Model.enhancedFindProductById(productId);
+            // Utiliser la nouvelle fonction de recherche
+            const product = Model.findProductById(productId);
             if (!product) {
                 console.error("Produit non trouvé avec ID:", productId);
                 this.showToast('Produit introuvable', 'error');
@@ -1852,17 +1853,17 @@
             
             console.log("Produit trouvé:", product);
             
+            // Vérification du stock
             if (product.quantity < quantity) {
                 this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
                 return false;
             }
             
-            // Vérifier si le produit est déjà dans le panier avec une comparaison stricte des chaînes
-            const existingItemIndex = this.cartItems.findIndex(item => String(item.id).trim() === productId);
-            console.log("Index existant:", existingItemIndex);
+            // Utiliser l'ID système pour la comparaison interne (plus fiable)
+            const existingItemIndex = this.cartItems.findIndex(item => String(item.id) === String(product.id));
             
             if (existingItemIndex !== -1) {
-                // Si le total demandé dépasse le stock disponible
+                // Vérifier le stock
                 const existingItem = this.cartItems[existingItemIndex];
                 if (existingItem.quantity + quantity > product.quantity) {
                     this.showToast(`Stock insuffisant pour ${product.brand} ${product.name}`, 'warning');
@@ -1875,7 +1876,8 @@
             } else {
                 // Ajouter au panier
                 const newItem = {
-                    id: productId, // S'assurer que l'ID est stocké comme une chaîne
+                    id: product.id,
+                    productId: product.productId || Model.generateCompatibleId(product.brand, product.name),
                     brand: product.brand,
                     name: product.name,
                     price: product.price,
@@ -1891,6 +1893,7 @@
             this.refreshCart();
             return true;
         },
+
         
         removeFromCart: function(productId, quantity = 1) {
             // S'assurer que productId est une chaîne
@@ -2881,20 +2884,60 @@
         processScannedQRCode: function(decodedText) {
             console.log("QR Code brut scanné:", decodedText);
             
-            // Essayer d'abord de traiter comme un ID standardisé (le format de l'app d'étiquettes)
-            let productId = String(decodedText).trim().toLowerCase();
-            
-            // Essayer de trouver le produit avec la fonction améliorée
-            const product = Model.enhancedFindProductById(productId);
-            
-            if (product) {
-                console.log("Produit trouvé par scan QR:", product);
-                // Utiliser une méthode dédiée qui prend l'objet produit directement
-                this.addProductToCart(product, 1); 
-                this.showToast(`${product.brand} ${product.name} ajouté au panier`);
-            } else {
-                console.error("Produit non trouvé par scan QR:", productId);
-                this.showToast('Produit non reconnu. Essayez une recherche manuelle.', 'warning');
+            try {
+                // Essayer de traiter comme un objet JSON
+                let scannedData;
+                try {
+                    scannedData = JSON.parse(decodedText);
+                } catch (e) {
+                    // Si ce n'est pas du JSON, traiter comme un ID simple
+                    scannedData = decodedText;
+                }
+                
+                let productId;
+                
+                // Si c'est un objet avec des attributs de produit
+                if (typeof scannedData === 'object' && scannedData !== null) {
+                    // Vérifier si l'objet contient un productId
+                    if (scannedData.productId) {
+                        productId = scannedData.productId;
+                    } 
+                    // Sinon, vérifier s'il a marque et nom pour construire l'ID
+                    else if (scannedData.brand && scannedData.name) {
+                        productId = Model.generateCompatibleId(scannedData.brand, scannedData.name);
+                    }
+                    // Fallback sur l'ID système
+                    else if (scannedData.id) {
+                        productId = scannedData.id;
+                    }
+                } else {
+                    // Traiter comme un ID simple
+                    productId = String(scannedData).trim();
+                }
+                
+                console.log("ID produit extrait:", productId);
+                
+                if (!productId) {
+                    this.showToast('QR code invalide ou incompatible', 'error');
+                    return;
+                }
+                
+                // Rechercher le produit avec l'ID extrait
+                const product = Model.findProductById(productId);
+                
+                if (product) {
+                    console.log("Produit trouvé par scan QR:", product);
+                    const success = this.addToCart(productId, 1);
+                    if (success) {
+                        this.showToast(`${product.brand} ${product.name} ajouté au panier`);
+                    }
+                } else {
+                    console.error("Produit non trouvé par scan QR:", productId);
+                    this.showToast('Produit non reconnu', 'warning');
+                }
+            } catch (error) {
+                console.error("Erreur lors du traitement du QR code:", error);
+                this.showToast('Erreur lors du traitement du QR code', 'error');
             }
         },
         addProductToCart: function(product, quantity = 1) {
@@ -3455,9 +3498,15 @@
         },
     };
     // Initialiser l'application au chargement
-    document.addEventListener('DOMContentLoaded', () => {
-        ViewModel.init();
-    });
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialiser l'application normalement
+            ViewModel.init();
+            
+            // Lancer la migration avec un léger délai pour s'assurer que l'UI est chargée
+            setTimeout(() => {
+                ViewModel.initWithMigration();
+            }, 1000);
+        });
             // Améliorations de l'onglet Stock
         function addInventoryFiltersHTML() {
             const filtersHTML = `
