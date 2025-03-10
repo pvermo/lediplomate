@@ -973,29 +973,98 @@
         },
         
         findProductById: function(productId) {
-            // Si l'ID semble être une combinaison marque-nom (contient un tiret)
+            // Assurez-vous que productId est une chaîne
+            productId = String(productId || '').trim();
+            console.log("Recherche du produit avec ID:", productId);
+            
+            // Récupérer tous les produits
+            const products = this.getProducts();
+            
+            // Vérifier si l'ID semble être une combinaison marque-nom (contient un tiret)
             if (productId.includes('-')) {
-                const products = this.getProducts();
-                const [brand, name] = productId.split('-').map(part => part.trim());
+                try {
+                    // Essayer d'extraire marque et nom de l'ID composite
+                    const parts = productId.split('-');
+                    
+                    // Si nous avons au moins deux parties
+                    if (parts.length >= 2) {
+                        const brand = parts[0].trim().toLowerCase();
+                        // Le nom peut contenir plusieurs tirets, donc on rejoint tout ce qui reste
+                        const name = parts.slice(1).join('-').trim().toLowerCase();
+                        
+                        console.log(`Recherche par marque-nom composite: Marque="${brand}", Nom="${name}"`);
+                        
+                        // Rechercher par marque et nom avec une correspondance approximative (insensible à la casse)
+                        const product = products.find(p => 
+                            p.brand.toLowerCase().includes(brand) && 
+                            p.name.toLowerCase().includes(name)
+                        );
+                        
+                        if (product) {
+                            console.log(`Produit trouvé par clé composite: ${product.brand} - ${product.name}`);
+                            return product;
+                        }
+                        
+                        // Essayer aussi le format inversé nom-marque
+                        const inverseProduct = products.find(p => 
+                            p.name.toLowerCase().includes(brand) && 
+                            p.brand.toLowerCase().includes(name)
+                        );
+                        
+                        if (inverseProduct) {
+                            console.log(`Produit trouvé par clé composite inversée: ${inverseProduct.brand} - ${inverseProduct.name}`);
+                            return inverseProduct;
+                        }
+                        
+                        // Essayer une recherche plus flexible (juste une des deux parties)
+                        const flexibleProduct = products.find(p => 
+                            p.brand.toLowerCase().includes(brand) || 
+                            p.name.toLowerCase().includes(name)
+                        );
+                        
+                        if (flexibleProduct) {
+                            console.log(`Produit trouvé par recherche flexible: ${flexibleProduct.brand} - ${flexibleProduct.name}`);
+                            return flexibleProduct;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de l'analyse de l'ID composite:", error);
+                }
+            }
+            
+            // Recherche directe par ID
+            const directMatch = products.find(p => String(p.id).trim() === productId);
+            
+            if (directMatch) {
+                console.log(`Produit trouvé par ID direct: ${directMatch.brand} ${directMatch.name}`);
+                return directMatch;
+            }
+            
+            // Recherche par ID personnalisé (customId) si présent
+            const customIdMatch = products.find(p => p.customId && String(p.customId).trim() === productId);
+            
+            if (customIdMatch) {
+                console.log(`Produit trouvé par ID personnalisé: ${customIdMatch.brand} ${customIdMatch.name}`);
+                return customIdMatch;
+            }
+            
+            // Si on arrive ici, aucun produit n'a été trouvé
+            console.warn(`Aucun produit trouvé pour ID: ${productId}`);
+            
+            // En dernier recours, essayer une recherche générale (utile pour les QR codes)
+            for (let product of products) {
+                // Créer diverses formes d'identifiants possibles
+                const simplifiedId = `${product.brand}-${product.name}`.toLowerCase().replace(/\s+/g, '-');
+                const alternativeId = `${product.brand} ${product.name}`.toLowerCase();
                 
-                // Rechercher par marque et nom
-                const product = products.find(p => 
-                    p.brand.toLowerCase() === brand.toLowerCase() && 
-                    p.name.toLowerCase() === name.toLowerCase()
-                );
-                
-                if (product) {
-                    console.log(`Produit trouvé par clé composite marque-nom: ${brand} - ${name}`);
+                if (productId.toLowerCase() === simplifiedId || 
+                    productId.toLowerCase() === alternativeId) {
+                    console.log(`Produit trouvé par ID alternatif: ${product.brand} ${product.name}`);
                     return product;
                 }
             }
             
-            // Sinon, recherche standard par ID
-            const products = this.getProducts();
-            const product = products.find(p => String(p.id).trim() === String(productId).trim());
-            
-            console.log(product ? `Produit trouvé: ${product.brand} ${product.name}` : `Aucun produit trouvé pour ID: ${productId}`);
-            return product;
+            return null;
         },
 
         migrateExistingData: function() {
