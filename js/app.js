@@ -147,10 +147,14 @@ function switchSection(sectionId, title) {
     // Recharger les données si nécessaire
     if (sectionId === 'products-section') {
         productManager.loadProducts();
+        updateProductCount();
     } else if (sectionId === 'history-section') {
         historyManager.loadSales();
     } else if (sectionId === 'stats-section') {
-        statsManager.loadStats();
+        // Ajouter un petit délai pour s'assurer que la section est visible
+        setTimeout(() => {
+            statsManager.loadStats();
+        }, 100);
     } else if (sectionId === 'labels-section') {
         labelsManager.loadProducts();
     }

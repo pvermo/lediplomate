@@ -1122,3 +1122,126 @@ body {
         display: block !important;
     }
 }
+.stat-trend {
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+.trend-neutral {
+    color: #6c757d;
+}
+
+/* Style pour les onglets d'analyse */
+.analysis-tabs {
+    margin-bottom: 20px;
+}
+
+/* Style pour les filtres */
+.filters-container {
+    margin-bottom: 20px;
+}
+.analysis-tabs {
+    margin-bottom: 20px;
+}
+
+.tab-contents .tab-content {
+    display: none;
+}
+
+.tab-contents .tab-content.active {
+    display: block;
+}
+
+/* Style pour les filtres */
+.filters-container {
+    margin-bottom: 20px;
+    border-radius: var(--border-radius);
+}
+
+/* Style pour les tendances */
+.stat-trend {
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+.trend-neutral {
+    color: #6c757d;
+}
+
+/* Améliorations pour les cartes de statistiques */
+.stat-card {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Tableau des statistiques */
+.table-stats {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-stats th {
+    background-color: var(--light-color);
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.table-stats td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.table-stats tr:last-child td {
+    border-bottom: none;
+}
+
+.table-stats tr:hover td {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Période de comparaison */
+.period-comparison {
+    font-size: 0.9rem;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+}
+.card-body canvas {
+    max-height: 300px !important;
+    height: 300px !important;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px !important;
+    max-height: 300px !important;
+}

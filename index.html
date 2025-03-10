@@ -270,35 +270,113 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- Nouveau contenu: section de filtres avancés -->
+                <div id="statsFilters" class="filters-container mt-3 mb-4 p-3 bg-light rounded">
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                        <div class="d-flex flex-wrap gap-2">
+                            <select id="statsSupplierFilter" class="form-select form-select-sm" style="width: auto;">
+                                <option value="all">Tous les fournisseurs</option>
+                            </select>
+                            <select id="statsCountryFilter" class="form-select form-select-sm" style="width: auto;">
+                                <option value="all">Tous les pays</option>
+                            </select>
+                            <select id="statsBrandFilter" class="form-select form-select-sm" style="width: auto;">
+                                <option value="all">Toutes les marques</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="comparePreviousPeriod">
+                            <label class="form-check-label" for="comparePreviousPeriod">Comparer avec période précédente</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Nouveau contenu: onglets d'analyse -->
+                <div id="statsTabs" class="nav nav-tabs analysis-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-tab="overview">
+                            <i class="fas fa-chart-pie me-2"></i>Vue d'ensemble
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="products">
+                            <i class="fas fa-box me-2"></i>Produits
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="suppliers">
+                            <i class="fas fa-truck me-2"></i>Fournisseurs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="trends">
+                            <i class="fas fa-chart-line me-2"></i>Tendances
+                        </a>
+                    </li>
+                </div>
+                
                 <div class="stats-container">
+                    <!-- Indicateurs de performance clés -->
                     <div class="stats-summary">
                         <div class="stat-card">
                             <div class="stat-title">Total des ventes</div>
                             <div class="stat-value" id="totalSales">0.00 €</div>
+                            <div class="stat-trend" id="totalSalesChange"></div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-title">Nombre de ventes</div>
                             <div class="stat-value" id="salesCount">0</div>
+                            <div class="stat-trend" id="salesCountChange"></div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-title">Cigares vendus</div>
                             <div class="stat-value" id="cigarsSold">0</div>
+                            <div class="stat-trend" id="cigarsSoldChange"></div>
                         </div>
                     </div>
 
-                    <div class="stats-charts">
-                        <div class="chart-container">
-                            <h4>Produits les plus vendus</h4>
-                            <canvas id="topProductsChart"></canvas>
+                    <!-- Nouveau contenu: conteneur pour les onglets -->
+                    <div id="statsTabContents" class="tab-contents">
+                        <!-- Onglet vue d'ensemble -->
+                        <div id="stats-tab-overview" class="tab-content active">
+                            <h4 class="mt-3">Aperçu général</h4>
+                            <div id="overview-stats-container" class="mt-3">
+                                <!-- Contenu dynamique -->
+                            </div>
                         </div>
-                        <div class="chart-container">
-                            <h4>Ventes par fournisseur</h4>
-                            <canvas id="supplierSalesChart"></canvas>
+                        
+                        <!-- Onglet produits -->
+                        <div id="stats-tab-products" class="tab-content">
+                            <h4 class="mt-3">Analyse par produit</h4>
+                            <div id="products-stats-container" class="mt-3">
+                                <!-- Contenu dynamique -->
+                            </div>
                         </div>
-                        <div class="chart-container">
-                            <h4>Ventes par pays d'origine</h4>
-                            <canvas id="countrySalesChart"></canvas>
+                        
+                        <!-- Onglet fournisseurs -->
+                        <div id="stats-tab-suppliers" class="tab-content">
+                            <h4 class="mt-3">Analyse par fournisseur</h4>
+                            <div id="suppliers-stats-container" class="mt-3">
+                                <!-- Contenu dynamique -->
+                            </div>
                         </div>
+                        
+                        <!-- Onglet tendances -->
+                        <div id="stats-tab-trends" class="tab-content">
+                            <h4 class="mt-3">Tendances et évolutions</h4>
+                            <div id="trends-stats-container" class="mt-3">
+                                <!-- Contenu dynamique -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Indicateur de chargement -->
+                    <div id="statsLoadingIndicator" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2">Chargement des statistiques...</p>
                     </div>
                 </div>
             </section>
@@ -310,6 +388,9 @@
                         <input type="text" id="labelsSearch" placeholder="Rechercher un produit..." class="form-control">
                     </div>
                     <div class="label-actions">
+                        <button id="selectAllLabelsBtn" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-check-square"></i> Sélectionner tout
+                        </button>
                         <button id="previewLabelsBtn" class="btn btn-primary">
                             <i class="fas fa-eye"></i> Prévisualiser
                         </button>
@@ -591,6 +672,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/db.js"></script>
     <script src="js/products.js"></script>
     <script src="js/sales.js"></script>
@@ -598,5 +680,7 @@
     <script src="js/stats.js"></script>
     <script src="js/labels.js"></script>
     <script src="js/app.js"></script>
+
+
 </body>
 </html>
