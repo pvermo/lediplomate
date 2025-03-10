@@ -3212,6 +3212,486 @@
     document.addEventListener('DOMContentLoaded', () => {
         ViewModel.init();
     });
+            // Améliorations de l'onglet Stock
+        function addInventoryFiltersHTML() {
+            const filtersHTML = `
+            <div class="col-md-6 mb-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <select class="form-select form-select-sm" id="stockBrandFilter">
+                            <option value="all" selected>Toutes les marques</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select form-select-sm" id="stockOriginFilter">
+                            <option value="all" selected>Toutes les origines</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select form-select-sm" id="stockSupplierFilter">
+                            <option value="all" selected>Tous les fournisseurs</option>
+                        </select>
+                    </div>
+                </div>
+            </div>`;
+            
+            // Insérer les filtres après la barre de recherche
+            const searchRow = document.querySelector('#inventory .card-body .mb-3.row');
+            const searchCol = searchRow.querySelector('.col-md-6:first-child');
+            
+            searchCol.insertAdjacentHTML('afterend', filtersHTML);
+        }
+
+        // 2. Ajouter une colonne "Valeur Stock" au tableau des produits
+        function updateProductsTableHeader() {
+            const tableHeader = document.querySelector('#productsTable thead tr');
+            
+            // Vérifier si la colonne existe déjà
+            if (!tableHeader.querySelector('th:nth-child(11)').textContent.includes('Valeur')) {
+                // Ajouter la colonne "Valeur Stock" avant la colonne "Fournisseur"
+                const supplierHeader = tableHeader.querySelector('th:nth-child(11)'); // La colonne fournisseur
+                
+                const valueHeader = document.createElement('th');
+                valueHeader.textContent = 'Valeur Stock';
+                tableHeader.insertBefore(valueHeader, supplierHeader);
+            }
+        }
+
+        // 3. Implémenter la fonctionnalité de filtrage et la mise à jour du tableau
+        function enhanceInventoryViewModel() {
+            // Étendre la méthode refreshProductTable du ViewModel
+            const originalRefreshProductTable = viewModelInstance.refreshProductTable;
+            
+            viewModelInstance.refreshProductTable = function() {
+                // Obtenir les produits
+                const products = Model.getProducts();
+                
+                // Mise à jour des options de filtrage
+                this.updateStockFilterOptions(products);
+                
+                // Appliquer les filtres actuels
+                const filteredProducts = this.applyStockFilters(products);
+                
+                // Calculer les statistiques par catégorie
+                this.calculateStockStats(filteredProducts);
+                
+                // Afficher le tableau avec les produits filtrés
+                this.renderProductsTable(filteredProducts);
+            };
+            
+            // Nouvelle méthode pour mettre à jour les options de filtrage
+            viewModelInstance.updateStockFilterOptions = function(products) {
+                // Extraire les valeurs uniques
+                const brands = [...new Set(products.map(p => p.brand))].sort();
+                const origins = [...new Set(products.map(p => p.origin))].sort();
+                const suppliers = [...new Set(products.map(p => p.supplier))].sort();
+                
+                // Mettre à jour le sélecteur de marques
+                const brandSelect = document.getElementById('stockBrandFilter');
+                if (brandSelect) {
+                    // Sauvegarder la valeur actuelle
+                    const currentValue = brandSelect.value;
+                    
+                    // Vider et remplir à nouveau
+                    brandSelect.innerHTML = '<option value="all">Toutes les marques</option>';
+                    brands.forEach(brand => {
+                        const option = document.createElement('option');
+                        option.value = brand;
+                        option.textContent = brand;
+                        brandSelect.appendChild(option);
+                    });
+                    
+                    // Restaurer la sélection si possible
+                    if (currentValue && brands.includes(currentValue)) {
+                        brandSelect.value = currentValue;
+                    }
+                }
+                
+                // Mettre à jour le sélecteur d'origines
+                const originSelect = document.getElementById('stockOriginFilter');
+                if (originSelect) {
+                    const currentValue = originSelect.value;
+                    
+                    originSelect.innerHTML = '<option value="all">Toutes les origines</option>';
+                    origins.forEach(origin => {
+                        const option = document.createElement('option');
+                        option.value = origin;
+                        option.textContent = origin;
+                        originSelect.appendChild(option);
+                    });
+                    
+                    if (currentValue && origins.includes(currentValue)) {
+                        originSelect.value = currentValue;
+                    }
+                }
+                
+                // Mettre à jour le sélecteur de fournisseurs
+                const supplierSelect = document.getElementById('stockSupplierFilter');
+                if (supplierSelect) {
+                    const currentValue = supplierSelect.value;
+                    
+                    supplierSelect.innerHTML = '<option value="all">Tous les fournisseurs</option>';
+                    suppliers.forEach(supplier => {
+                        const option = document.createElement('option');
+                        option.value = supplier;
+                        option.textContent = supplier;
+                        supplierSelect.appendChild(option);
+                    });
+                    
+                    if (currentValue && suppliers.includes(currentValue)) {
+                        supplierSelect.value = currentValue;
+                    }
+                }
+            };
+            
+            // Nouvelle méthode pour appliquer les filtres
+            viewModelInstance.applyStockFilters = function(products) {
+                const brandFilter = document.getElementById('stockBrandFilter')?.value || 'all';
+                const originFilter = document.getElementById('stockOriginFilter')?.value || 'all';
+                const supplierFilter = document.getElementById('stockSupplierFilter')?.value || 'all';
+                
+                return products.filter(product => {
+                    const brandMatch = brandFilter === 'all' || product.brand === brandFilter;
+                    const originMatch = originFilter === 'all' || product.origin === originFilter;
+                    const supplierMatch = supplierFilter === 'all' || product.supplier === supplierFilter;
+                    
+                    return brandMatch && originMatch && supplierMatch;
+                });
+            };
+            
+            // Nouvelle méthode pour calculer les statistiques du stock
+            viewModelInstance.calculateStockStats = function(products) {
+                // Calculer les totaux par catégorie
+                const brandStats = {};
+                const originStats = {};
+                const supplierStats = {};
+                
+                let totalCigars = 0;
+                let totalValue = 0;
+                
+                products.forEach(product => {
+                    const quantity = product.quantity || 0;
+                    const price = product.price || 0;
+                    const value = quantity * price;
+                    
+                    totalCigars += quantity;
+                    totalValue += value;
+                    
+                    // Stats par marque
+                    if (!brandStats[product.brand]) {
+                        brandStats[product.brand] = { quantity: 0, value: 0 };
+                    }
+                    brandStats[product.brand].quantity += quantity;
+                    brandStats[product.brand].value += value;
+                    
+                    // Stats par origine
+                    if (!originStats[product.origin]) {
+                        originStats[product.origin] = { quantity: 0, value: 0 };
+                    }
+                    originStats[product.origin].quantity += quantity;
+                    originStats[product.origin].value += value;
+                    
+                    // Stats par fournisseur
+                    if (!supplierStats[product.supplier]) {
+                        supplierStats[product.supplier] = { quantity: 0, value: 0 };
+                    }
+                    supplierStats[product.supplier].quantity += quantity;
+                    supplierStats[product.supplier].value += value;
+                });
+                
+                // Stocker les statistiques pour utilisation ultérieure
+                this.stockStats = {
+                    brandStats,
+                    originStats,
+                    supplierStats,
+                    totalCigars,
+                    totalValue
+                };
+                
+                // Mettre à jour les totaux affichés
+                document.getElementById('totalCigarsCount').textContent = totalCigars;
+                document.getElementById('totalStockValue').textContent = this.formatPrice(totalValue);
+                
+                // Afficher les stats par catégorie sélectionnée
+                this.displayCategoryStats();
+            };
+            
+            // Nouvelle méthode pour afficher les statistiques par catégorie
+            viewModelInstance.displayCategoryStats = function() {
+                if (!this.stockStats) return;
+                
+                // Identifier quelle catégorie est actuellement filtrée
+                const brandFilter = document.getElementById('stockBrandFilter')?.value || 'all';
+                const originFilter = document.getElementById('stockOriginFilter')?.value || 'all';
+                const supplierFilter = document.getElementById('stockSupplierFilter')?.value || 'all';
+                
+                // Créer ou mettre à jour la section des statistiques catégorielles
+                let statsContainer = document.getElementById('categoryStatsContainer');
+                
+                if (!statsContainer) {
+                    // Créer le conteneur s'il n'existe pas
+                    statsContainer = document.createElement('div');
+                    statsContainer.id = 'categoryStatsContainer';
+                    statsContainer.className = 'row mb-3';
+                    
+                    // Insérer avant le tableau des produits
+                    const tableContainer = document.querySelector('#productsTable').parentNode;
+                    tableContainer.parentNode.insertBefore(statsContainer, tableContainer);
+                }
+                
+                // Déterminer quelles statistiques afficher
+                let statsToShow = [];
+                
+                // Si un filtre spécifique est appliqué, montrer les détails pour cette catégorie
+                if (brandFilter !== 'all') {
+                    statsToShow.push({
+                        title: `Statistiques pour la marque: ${brandFilter}`,
+                        quantity: this.stockStats.brandStats[brandFilter]?.quantity || 0,
+                        value: this.stockStats.brandStats[brandFilter]?.value || 0
+                    });
+                } else if (originFilter !== 'all') {
+                    statsToShow.push({
+                        title: `Statistiques pour l'origine: ${originFilter}`,
+                        quantity: this.stockStats.originStats[originFilter]?.quantity || 0,
+                        value: this.stockStats.originStats[originFilter]?.value || 0
+                    });
+                } else if (supplierFilter !== 'all') {
+                    statsToShow.push({
+                        title: `Statistiques pour le fournisseur: ${supplierFilter}`,
+                        quantity: this.stockStats.supplierStats[supplierFilter]?.quantity || 0,
+                        value: this.stockStats.supplierStats[supplierFilter]?.value || 0
+                    });
+                } else {
+                    // Si aucun filtre n'est appliqué, montrer les top 3 par quantité pour chaque catégorie
+                    statsToShow = [
+                        {
+                            title: 'Total du stock',
+                            quantity: this.stockStats.totalCigars,
+                            value: this.stockStats.totalValue
+                        }
+                    ];
+                }
+                
+                // Générer le HTML pour les statistiques
+                let statsHTML = '';
+                
+                statsToShow.forEach(stat => {
+                    statsHTML += `
+                    <div class="col-md-6 mb-2">
+                        <div class="alert alert-info">
+                            <h6>${stat.title}</h6>
+                            <div><strong>Quantité:</strong> ${stat.quantity} cigares</div>
+                            <div><strong>Valeur:</strong> ${this.formatPrice(stat.value)}</div>
+                        </div>
+                    </div>`;
+                });
+                
+                // Ajouter les top 3 si aucun filtre n'est appliqué
+                if (brandFilter === 'all' && originFilter === 'all' && supplierFilter === 'all') {
+                    // Top 3 Marques
+                    const topBrands = Object.entries(this.stockStats.brandStats)
+                        .sort((a, b) => b[1].value - a[1].value)
+                        .slice(0, 3);
+                    
+                    if (topBrands.length > 0) {
+                        let topBrandsHTML = `
+                        <div class="col-md-6 mb-2">
+                            <div class="alert alert-info">
+                                <h6>Top 3 Marques</h6>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Marque</th>
+                                            <th class="text-end">Quantité</th>
+                                            <th class="text-end">Valeur</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        
+                        topBrands.forEach(([brand, stats]) => {
+                            topBrandsHTML += `
+                                <tr>
+                                    <td>${brand}</td>
+                                    <td class="text-end">${stats.quantity}</td>
+                                    <td class="text-end">${this.formatPrice(stats.value)}</td>
+                                </tr>`;
+                        });
+                        
+                        topBrandsHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                        
+                        statsHTML += topBrandsHTML;
+                    }
+                    
+                    // Top 3 Fournisseurs
+                    const topSuppliers = Object.entries(this.stockStats.supplierStats)
+                        .sort((a, b) => b[1].value - a[1].value)
+                        .slice(0, 3);
+                    
+                    if (topSuppliers.length > 0) {
+                        let topSuppliersHTML = `
+                        <div class="col-md-6 mb-2">
+                            <div class="alert alert-info">
+                                <h6>Top 3 Fournisseurs</h6>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Fournisseur</th>
+                                            <th class="text-end">Quantité</th>
+                                            <th class="text-end">Valeur</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        
+                        topSuppliers.forEach(([supplier, stats]) => {
+                            topSuppliersHTML += `
+                                <tr>
+                                    <td>${supplier}</td>
+                                    <td class="text-end">${stats.quantity}</td>
+                                    <td class="text-end">${this.formatPrice(stats.value)}</td>
+                                </tr>`;
+                        });
+                        
+                        topSuppliersHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                        
+                        statsHTML += topSuppliersHTML;
+                    }
+                }
+                
+                // Mettre à jour le contenu
+                statsContainer.innerHTML = statsHTML;
+            };
+            
+            // Nouvelle méthode pour afficher le tableau des produits avec la colonne de valeur stock
+            viewModelInstance.renderProductsTable = function(products) {
+                const tableBody = document.querySelector('#productsTable tbody');
+                tableBody.innerHTML = '';
+                
+                if (products.length === 0) {
+                    // Aucun produit à afficher
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `<td colspan="13" class="text-center text-muted">Aucun produit disponible</td>`;
+                    tableBody.appendChild(emptyRow);
+                    return;
+                }
+                
+                // Vérifier si on doit ajouter l'en-tête pour la colonne de valeur
+                updateProductsTableHeader();
+                
+                // Trier les produits par marque puis nom
+                const sortedProducts = [...products].sort((a, b) => {
+                    if (a.brand !== b.brand) {
+                        return a.brand.localeCompare(b.brand);
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+                
+                sortedProducts.forEach(product => {
+                    const row = document.createElement('tr');
+                    
+                    // Calculer la valeur totale du stock pour ce produit
+                    const stockValue = (product.quantity || 0) * (product.price || 0);
+                    
+                    // Classe pour les produits avec stock faible
+                    if (product.quantity < 5) {
+                        row.classList.add('table-warning');
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${product.brand}</td>
+                        <td>${product.name}</td>
+                        <td>${product.origin}</td>
+                        <td>${product.vitola}</td>
+                        <td>${product.wrapper}</td>
+                        <td>${product.binder}</td>
+                        <td>${product.filler}</td>
+                        <td>${product.strength}</td>
+                        <td class="text-end">${product.quantity}</td>
+                        <td class="text-end">${this.formatPrice(product.price)}</td>
+                        <td class="text-end">${this.formatPrice(stockValue)}</td>
+                        <td>${product.supplier}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1 edit-product" data-id="${product.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Ajouter un pied de tableau avec les totaux
+                const tfoot = document.querySelector('#productsTable tfoot');
+                if (tfoot) {
+                    tfoot.remove(); // Supprimer l'ancien pied de tableau s'il existe
+                }
+                
+                // Calculer les totaux
+                const totalQuantity = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+                const totalValue = products.reduce((sum, p) => sum + ((p.quantity || 0) * (p.price || 0)), 0);
+                
+                // Créer le nouveau pied de tableau
+                const newTfoot = document.createElement('tfoot');
+                newTfoot.innerHTML = `
+                    <tr class="table-secondary">
+                        <td colspan="8" class="text-end fw-bold">Total:</td>
+                        <td class="text-end fw-bold">${totalQuantity}</td>
+                        <td></td>
+                        <td class="text-end fw-bold">${this.formatPrice(totalValue)}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                `;
+                
+                // Ajouter le pied de tableau
+                const table = document.querySelector('#productsTable');
+                table.appendChild(newTfoot);
+                
+                // Ajouter les écouteurs d'événements pour les boutons d'action
+                this.setupProductActionListeners();
+            };
+            
+            // Configurer les écouteurs d'événements pour les filtres
+            viewModelInstance.setupStockFilterListeners = function() {
+                const filters = ['stockBrandFilter', 'stockOriginFilter', 'stockSupplierFilter'];
+                
+                filters.forEach(filterId => {
+                    const filter = document.getElementById(filterId);
+                    if (filter) {
+                        filter.addEventListener('change', () => {
+                            this.refreshProductTable();
+                        });
+                    }
+                });
+            };
+        }
+
+        // Fonction pour initialiser les améliorations
+        function initInventoryEnhancements() {
+            // Ajouter les éléments HTML pour les filtres
+            addInventoryFiltersHTML();
+            
+            // Améliorer le ViewModel
+            enhanceInventoryViewModel();
+            
+            // Configurer les écouteurs d'événements
+            viewModelInstance.setupStockFilterListeners();
+            
+            // Rafraîchir le tableau pour afficher les modifications
+            viewModelInstance.refreshProductTable();
+        }
+
+        // Exécuter l'initialisation après un court délai pour s'assurer que l'application est chargée
+        setTimeout(initInventoryEnhancements, 500);
     </script>
 </body>
 </html>
