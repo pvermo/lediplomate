@@ -1168,6 +1168,71 @@
             console.warn(`Aucun produit trouvé pour ID: ${productId}`);
             return null;
         },
+        findProductByAttributes: function(attributes) {
+            try {
+                // Si la chaîne est au format JSON, la parser
+                if (typeof attributes === 'string' && attributes.startsWith('{')) {
+                    try {
+                        attributes = JSON.parse(attributes);
+                    } catch (e) {
+                        console.error("Impossible de parser le JSON:", e);
+                    }
+                }
+                
+                // Si ce n'est pas un objet après le parsing, retourner null
+                if (typeof attributes !== 'object' || attributes === null) {
+                    console.error("Le QR code ne contient pas d'attributs valides");
+                    return null;
+                }
+                
+                const products = this.getProducts();
+                
+                // Rechercher un produit correspondant aux attributs
+                const product = products.find(p => {
+                    // Marque et nom sont les attributs les plus importants
+                    if (attributes.brand && attributes.name) {
+                        const brandMatch = p.brand.toLowerCase().includes(attributes.brand.toLowerCase()) || 
+                                          attributes.brand.toLowerCase().includes(p.brand.toLowerCase());
+                        
+                        const nameMatch = p.name.toLowerCase().includes(attributes.name.toLowerCase()) || 
+                                         attributes.name.toLowerCase().includes(p.name.toLowerCase());
+                        
+                        // Si les deux correspondent, c'est très probablement le bon produit
+                        if (brandMatch && nameMatch) {
+                            // Si l'origine est spécifiée, l'utiliser comme vérification supplémentaire
+                            if (attributes.origin && p.origin) {
+                                const originMatch = p.origin.toLowerCase().includes(attributes.origin.toLowerCase()) || 
+                                                  attributes.origin.toLowerCase().includes(p.origin.toLowerCase());
+                                if (!originMatch) return false;
+                            }
+                            
+                            // Si le prix est spécifié et qu'il est proche, c'est une bonne indication
+                            if (attributes.price && p.price) {
+                                // Tolérance de 10% sur le prix
+                                const priceDiff = Math.abs(attributes.price - p.price);
+                                const priceMatch = priceDiff <= (p.price * 0.1);
+                                if (!priceMatch) return false;
+                            }
+                            
+                            return true;
+                        }
+                    }
+                    
+                    return false;
+                });
+                
+                if (product) {
+                    console.log(`Produit trouvé par attributs: ${product.brand} ${product.name}`);
+                    return product;
+                }
+                
+                console.warn("Aucun produit ne correspond aux attributs");
+                return null;
+            } catch (error) {
+                console.error("Erreur lors de la recherche par attributs:", error);
+                return null;
+            }
+        },
 
 
         migrateExistingData: function() {
@@ -2837,12 +2902,28 @@
         },
 
         // Nouvelle méthode pour traiter le code QR scanné
+// Nouvelle méthode pour traiter le code QR scanné
         processScannedQRCode: function(decodedText) {
+            console.log("QR Code brut scanné:", decodedText);
             const productId = String(decodedText).trim();
-            console.log("Traitement du QR Code scanné:", productId);
             
-            // Utiliser la fonction améliorée pour trouver le produit
-            const product = Model.enhancedFindProductById(productId);
+            // Essayer d'abord de trouver par attributs (format JSON)
+            let product = null;
+            
+            if (decodedText.startsWith('{')) {
+                console.log("QR code au format JSON détecté, recherche par attributs");
+                try {
+                    product = Model.findProductByAttributes(decodedText);
+                } catch (e) {
+                    console.error("Erreur lors de la recherche par attributs:", e);
+                }
+            }
+            
+            // Si non trouvé par attributs, essayer les méthodes traditionnelles
+            if (!product) {
+                console.log("Recherche par méthodes traditionnelles");
+                product = Model.enhancedFindProductById(productId);
+            }
             
             if (product) {
                 console.log("Produit trouvé par scan QR:", product);
@@ -2861,26 +2942,12 @@
                 modal.hide();
             }
             
-            // Traiter ensuite le code QR
-            const productId = String(decodedText).trim();
-            console.log("Traitement du QR Code scanné:", productId);
-            
-            // Essayer de trouver le produit correspondant
-            const product = Model.findProductById(productId);
-            
-            if (product) {
-                console.log("Produit trouvé par scan QR:", product);
-                // Ajouter au panier après un court délai pour s'assurer que le modal est fermé
-                setTimeout(() => {
-                    this.addToCart(productId, 1);
-                    this.showToast(`${product.brand} ${product.name} ajouté au panier`);
-                }, 500);
-            } else {
-                console.error("Produit non trouvé par scan QR:", productId);
-                this.showToast('Produit non reconnu', 'warning');
-            }
+            // Traiter ensuite le code QR après un court délai
+            setTimeout(() => {
+                // Utiliser directement la méthode améliorée de traitement QR
+                this.processScannedQRCode(decodedText);
+            }, 500);
         },
-
         onQRScanError: function(err) {
             // Ne rien faire sur les erreurs de lecture (c'est normal quand aucun QR n'est détecté)
             console.debug('QR scan error:', err);
