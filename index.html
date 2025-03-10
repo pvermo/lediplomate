@@ -1843,7 +1843,7 @@
             productId = String(productId).trim();
             console.log("Ajout au panier du produit ID:", productId);
             
-            const product = Model.findProductById(productId);
+            const product = Model.enhancedFindProductById(productId);
             if (!product) {
                 console.error("Produit non trouvé avec ID:", productId);
                 this.showToast('Produit introuvable', 'error');
