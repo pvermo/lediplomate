@@ -1066,7 +1066,7 @@
             
             return null;
         },
-        Model.enhancedFindProductById = function(productId) {
+        enhancedFindProductById: function(productId) {
             // Assurez-vous que productId est une chaîne
             productId = String(productId || '').trim();
             console.log("Recherche du produit avec ID:", productId);
