@@ -104,22 +104,31 @@ function initEventListeners() {
  * @param {string} title - Titre à afficher dans l'en-tête
  */
 function switchSection(sectionId, title) {
-    // Masquer toutes les sections
-    contentSections.forEach(section => {
+    // Masquer TOUTES les sections, y compris tableau de bord et analyse des ratios
+    document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
     });
     
     // Désactiver tous les éléments du menu
-    sidebarItems.forEach(item => {
+    document.querySelectorAll('.sidebar-menu li').forEach(item => {
         item.classList.remove('active');
     });
     
     // Activer la section et l'élément de menu correspondants
-    document.getElementById(sectionId).classList.add('active');
-    document.querySelector(`[data-target="${sectionId}"]`).classList.add('active');
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    const menuItem = document.querySelector(`[data-target="${sectionId}"]`);
+    if (menuItem) {
+        menuItem.classList.add('active');
+    }
     
     // Mettre à jour le titre
-    currentSectionTitle.textContent = title;
+    if (currentSectionTitle) {
+        currentSectionTitle.textContent = title;
+    }
     
     // Si section des ventes, activer le focus sur le scanner
     if (sectionId === 'sales-section') {
@@ -130,6 +139,7 @@ function switchSection(sectionId, title) {
             }
         }, 100);
     }
+    
     // Si on quitte la section des ventes, nettoyer le scanner
     if (document.getElementById('sales-section').classList.contains('active') && 
         sectionId !== 'sales-section') {
@@ -137,6 +147,7 @@ function switchSection(sectionId, title) {
             salesManager.cleanupScanner();
         }
     }
+    
     // Recharger les données si nécessaire
     if (sectionId === 'products-section') {
         productManager.loadProducts();
@@ -158,23 +169,53 @@ function switchSection(sectionId, title) {
  */
 async function exportFullData() {
     try {
+        // Afficher un indicateur de chargement
+        const exportBtn = document.getElementById('exportFullDataBtn');
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportation en cours...';
+        exportBtn.disabled = true;
+        
+        // Récupérer toutes les données via le gestionnaire de DB
         const data = await dbManager.exportAllData();
+        
+        // Informations sur l'export pour l'utilisateur
+        const productsCount = data.products ? data.products.length : 0;
+        const salesCount = data.sales ? data.sales.length : 0;
+        
+        // Ajouter plus d'informations sur l'export
+        data.exportInfo = {
+            version: "1.0",
+            date: new Date().toISOString(),
+            productsCount: productsCount,
+            salesCount: salesCount
+        };
         
         // Convertir en JSON
         const jsonData = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonData], { type: 'application/json' });
         
         // Télécharger le fichier
-        const fileName = `cigar_manager_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        const fileName = `cigar_manager_full_backup_${new Date().toISOString().slice(0, 10)}.json`;
         saveAs(blob, fileName);
         
-        alert('Exportation réussie');
+        // Restaurer le bouton
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+        
+        // Informer l'utilisateur du succès
+        alert(`Exportation réussie !\n- ${productsCount} produits exportés\n- ${salesCount} ventes exportées`);
     } catch (error) {
         console.error('Erreur lors de l\'exportation des données:', error);
         alert('Erreur lors de l\'exportation des données.');
+        
+        // Restaurer le bouton en cas d'erreur
+        const exportBtn = document.getElementById('exportFullDataBtn');
+        if (exportBtn) {
+            exportBtn.innerHTML = '<i class="fas fa-download"></i> Exporter toutes les données';
+            exportBtn.disabled = false;
+        }
     }
 }
-
 /**
  * Exporte les données actuelles (produits uniquement)
  */
@@ -204,9 +245,27 @@ async function importFullData() {
         if (!file) return;
         
         try {
+            // Afficher un indicateur de chargement
+            const importBtn = document.getElementById('importFullDataBtn');
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importation en cours...';
+            importBtn.disabled = true;
+            
+            // Lire le fichier JSON
             const jsonData = await readJsonFile(file);
             
-            if (confirm('Attention: Cette action remplacera toutes les données existantes. Continuer?')) {
+            // Vérifier si le fichier contient les données nécessaires
+            if (!jsonData.products || !Array.isArray(jsonData.products) ||
+                !jsonData.sales || !Array.isArray(jsonData.sales)) {
+                throw new Error('Format de fichier invalide. Le fichier doit contenir des produits et des ventes.');
+            }
+            
+            // Détails pour la confirmation
+            const productsCount = jsonData.products.length;
+            const salesCount = jsonData.sales.length;
+            
+            if (confirm(`Attention: Cette action remplacera toutes les données existantes.\n\nLe fichier contient:\n- ${productsCount} produits\n- ${salesCount} ventes\n\nContinuer?`)) {
+                // Importer les données
                 await dbManager.importAllData(jsonData);
                 
                 // Recharger les données
@@ -215,11 +274,23 @@ async function importFullData() {
                 await statsManager.loadStats();
                 await labelsManager.loadProducts();
                 
-                alert('Importation réussie');
+                // Informer l'utilisateur du succès
+                alert(`Importation réussie !\n- ${productsCount} produits importés\n- ${salesCount} ventes importées`);
             }
+            
+            // Restaurer le bouton
+            importBtn.innerHTML = originalText;
+            importBtn.disabled = false;
         } catch (error) {
             console.error('Erreur lors de l\'importation des données:', error);
             alert(`Erreur lors de l'importation: ${error.message}`);
+            
+            // Restaurer le bouton en cas d'erreur
+            const importBtn = document.getElementById('importFullDataBtn');
+            if (importBtn) {
+                importBtn.innerHTML = '<i class="fas fa-upload"></i> Importer toutes les données';
+                importBtn.disabled = false;
+            }
         }
     });
     
@@ -241,7 +312,7 @@ function readJsonFile(file) {
                 const data = JSON.parse(e.target.result);
                 resolve(data);
             } catch (error) {
-                reject(new Error('Format de fichier invalide'));
+                reject(new Error('Format de fichier invalide. Le fichier doit être au format JSON.'));
             }
         };
         
@@ -250,6 +321,67 @@ function readJsonFile(file) {
         reader.readAsText(file);
     });
 }
+async function prepareDataForExport() {
+    try {
+        const products = await dbManager.getAllProducts();
+        const sales = await dbManager.getAllSales();
+        
+        // Vérifier l'intégrité des données
+        const validProducts = products.filter(product => 
+            product.name && product.brand && typeof product.stock === 'number' && typeof product.price === 'number'
+        );
+        
+        const validSales = sales.filter(sale => 
+            sale.date && Array.isArray(sale.items) && typeof sale.total === 'number' && sale.total >= 0
+        );
+        
+        // Retourner les données validées
+        return {
+            products: validProducts,
+            sales: validSales,
+            exportDate: new Date().toISOString()
+        };
+    } catch (error) {
+        console.error('Erreur lors de la préparation des données pour l\'exportation:', error);
+        throw new Error('Erreur lors de la préparation des données pour l\'exportation');
+    }
+}
+
+// Mise à jour des événements pour les boutons d'importation/exportation
+function updateImportExportEvents() {
+    // Mettre à jour les boutons dans les paramètres
+    const exportFullDataBtn = document.getElementById('exportFullDataBtn');
+    const importFullDataBtn = document.getElementById('importFullDataBtn');
+    
+    if (exportFullDataBtn) {
+        exportFullDataBtn.removeEventListener('click', exportFullData);
+        exportFullDataBtn.addEventListener('click', exportFullData);
+        // Mettre à jour le texte pour plus de clarté
+        exportFullDataBtn.innerHTML = '<i class="fas fa-download"></i> Exporter produits et historique de ventes';
+    }
+    
+    if (importFullDataBtn) {
+        importFullDataBtn.removeEventListener('click', importFullData);
+        importFullDataBtn.addEventListener('click', importFullData);
+        // Mettre à jour le texte pour plus de clarté
+        importFullDataBtn.innerHTML = '<i class="fas fa-upload"></i> Importer produits et historique de ventes';
+    }
+    
+    // Mettre à jour les boutons dans la barre latérale
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const importDataBtn = document.getElementById('importDataBtn');
+    
+    if (exportDataBtn) {
+        exportDataBtn.innerHTML = '<i class="fas fa-download"></i> Exporter CSV/Excel';
+        exportDataBtn.title = "Exporter les produits au format Excel";
+    }
+    
+    if (importDataBtn) {
+        importDataBtn.innerHTML = '<i class="fas fa-upload"></i> Importer CSV/Excel';
+        importDataBtn.title = "Importer des produits depuis un fichier Excel";
+    }
+}
+
 
 // Style CSS pour les étiquettes en aperçu
 const labelStyles = document.createElement('style');
@@ -320,4 +452,9 @@ labelStyles.textContent = `
 document.head.appendChild(labelStyles);
 
 // Initialiser l'application au chargement de la page
+// Appeler cette fonction au chargement de l'application pour mettre à jour les libellés et événements
+document.addEventListener('DOMContentLoaded', function() {
+    // Cette fonction sera appelée après que l'application soit initialisée
+    setTimeout(updateImportExportEvents, 1000);
+});
 document.addEventListener('DOMContentLoaded', initApp);

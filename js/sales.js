@@ -555,6 +555,7 @@ class SalesManager {
     
     /**
      * Méthode améliorée pour afficher le contenu du panier avec des sous-totaux par catégorie
+     * et le stock disponible pour chaque produit
      */
     renderCart() {
         // Vider le panier visuel
@@ -567,7 +568,7 @@ class SalesManager {
         }
         
         // Trier les articles du panier
-        const sortBy = this.sortBy || 'name'; // Utiliser this.sortBy au lieu de this.cartSortBy.value
+        const sortBy = this.sortBy || 'name';
         this.cart.sort((a, b) => {
             switch (sortBy) {
                 case 'name':
@@ -649,6 +650,19 @@ class SalesManager {
             categoryGroup.items.forEach(item => {
                 const subtotal = item.quantity * item.product.price;
                 
+                // Calculer le stock restant (stock actuel moins la quantité dans le panier)
+                const stockRestant = item.product.stock - item.quantity;
+                
+                // Définir la classe de stock en fonction du niveau restant
+                let stockClass = '';
+                if (stockRestant <= 0) {
+                    stockClass = 'text-danger fw-bold'; // Rouge et gras pour stock épuisé
+                } else if (stockRestant <= 5) {
+                    stockClass = 'text-warning'; // Orange pour stock faible
+                } else {
+                    stockClass = 'text-success'; // Vert pour stock normal
+                }
+                
                 const cartItem = document.createElement('div');
                 cartItem.className = 'cart-item';
                 
@@ -657,6 +671,9 @@ class SalesManager {
                         <div class="cart-item-title">${item.product.brand} ${item.product.name}</div>
                         <div class="cart-item-details">
                             ${item.product.country} | ${item.product.vitole} | ${item.product.price.toFixed(2)} €
+                            <span class="ms-2 ${stockClass}">
+                                <i class="fas fa-cubes"></i> Stock: ${stockRestant}
+                            </span>
                         </div>
                     </div>
                     <div class="cart-item-price">${subtotal.toFixed(2)} €</div>
@@ -665,7 +682,7 @@ class SalesManager {
                             <i class="fas fa-minus"></i>
                         </button>
                         <span class="cart-item-quantity">${item.quantity}</span>
-                        <button class="btn btn-sm btn-outline-secondary increase-quantity">
+                        <button class="btn btn-sm btn-outline-secondary increase-quantity" ${stockRestant <= 0 ? 'disabled' : ''}>
                             <i class="fas fa-plus"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger remove-item">

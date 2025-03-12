@@ -1292,3 +1292,229 @@ body {
         max-width: 100px;
     }
 }
+/* Styles pour l'indicateur de stock */
+.cart-item-details .text-danger {
+    color: #dc3545 !important;
+}
+
+.cart-item-details .text-warning {
+    color: #ffc107 !important;
+}
+
+.cart-item-details .text-success {
+    color: #28a745 !important;
+}
+
+/* Animation pour l'indication de stock faible */
+@keyframes stockPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.cart-item-details .text-warning {
+    animation: stockPulse 2s infinite;
+}
+/* Styles pour le tableau de bord */
+.dashboard-container {
+    padding: 10px 0;
+}
+
+/* Cartes d'indicateurs */
+.dashboard-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+    height: 100%;
+    min-height: 120px;
+    padding: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 15px;
+    font-size: 24px;
+    color: white;
+}
+
+.dashboard-card-content {
+    flex: 1;
+}
+
+.dashboard-card h5 {
+    margin: 0 0 5px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #777;
+}
+
+.dashboard-card h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+/* Couleurs d'icônes */
+.bg-primary {
+    background-color: var(--primary-color);
+}
+
+.bg-success {
+    background-color: var(--success-color);
+}
+
+.bg-warning {
+    background-color: var(--warning-color);
+}
+
+.bg-info {
+    background-color: var(--secondary-color);
+}
+
+/* Cartes de graphiques */
+.dashboard-container .card {
+    height: 100%;
+    box-shadow: var(--box-shadow);
+    border: none;
+    border-radius: var(--border-radius);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dashboard-container .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-container .card-header {
+    background-color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 15px 20px;
+}
+
+.dashboard-container .card-header h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Tableaux du tableau de bord */
+.dashboard-container .table-responsive {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.dashboard-container .table {
+    margin-bottom: 0;
+}
+
+.dashboard-container .table-sm td, 
+.dashboard-container .table-sm th {
+    padding: 0.5rem;
+}
+
+/* Boutons de type de graphique */
+.dashboard-container .btn-group .btn {
+    font-size: 12px;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Adaptations pour le mode sombre */
+body.dark-mode .dashboard-card {
+    background-color: var(--card-bg);
+}
+
+body.dark-mode .dashboard-card h5 {
+    color: var(--text-muted);
+}
+
+body.dark-mode .dashboard-card h2 {
+    color: var(--text-color);
+}
+
+body.dark-mode .dashboard-container .card-header {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* Animation pour les cartes qui nécessitent attention */
+@keyframes pulseWarning {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
+
+.dashboard-container .col-md-6:nth-child(2) .dashboard-card {
+    animation: pulseWarning 2s infinite;
+    animation-play-state: paused;
+}
+
+.dashboard-container .col-md-6:nth-child(2) .dashboard-card:hover {
+    animation-play-state: running;
+}
+/* Styles pour le rapport d'analyse des ratios de cigares */
+.ratio-analysis-report {
+    font-size: 0.9rem;
+}
+
+.report-header {
+    margin-bottom: 20px;
+}
+
+.report-section {
+    margin-bottom: 30px;
+}
+
+.report-section h4 {
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Tableau responsive avec colonnes fixes */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Accordéon de recommandations */
+.ratio-analysis-report .accordion-button {
+    padding: 0.75rem 1rem;
+}
+
+.ratio-analysis-report .accordion-body {
+    padding: 0;
+}
+
+/* Adaption au mode sombre */
+body.dark-mode .report-section h4 {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .ratio-analysis-report .accordion-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .ratio-analysis-report .accordion-button {
+    background-color: var(--dark-color);
+    color: var(--text-color);
+}
+
+body.dark-mode .ratio-analysis-report .accordion-button:not(.collapsed) {
+    background-color: var(--primary-color);
+}

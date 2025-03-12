@@ -264,9 +264,9 @@ class LabelsManager {
         const name = this.truncateText(product.name, 20);
         const country = this.truncateText(product.country, 40);
         const vitole = this.truncateText(product.vitole, 20);
-        const cape = this.truncateText(product.cape || 'N/A', 20);
-        const sousCape = this.truncateText(product.sousCape || 'N/A', 20);
-        const tripe = this.truncateText(product.tripe || 'N/A', 40);
+        const cape = this.truncateText(product.cape || 'N/A', 40);
+        const sousCape = this.truncateText(product.sousCape || 'N/A', 40);
+        const tripe = this.truncateText(product.tripe || 'N/A', 60);
         const formattedPrice = product.price.toFixed(2);
         
         // Générer l'indicateur de force
@@ -348,9 +348,9 @@ class LabelsManager {
         const name = this.truncateText(product.name, 20);
         const country = this.truncateText(product.country, 15);
         const vitole = this.truncateText(product.vitole, 20);
-        const cape = this.truncateText(product.cape || 'N/A', 20);
-        const sousCape = this.truncateText(product.sousCape || 'N/A', 20);
-        const tripe = this.truncateText(product.tripe || 'N/A', 20);
+        const cape = this.truncateText(product.cape || 'N/A', 40);
+        const sousCape = this.truncateText(product.sousCape || 'N/A', 40);
+        const tripe = this.truncateText(product.tripe || 'N/A', 60);
         const formattedPrice = product.price.toFixed(2);
         
         // Version améliorée avec des styles renforcés pour garantir l'affichage du prix
@@ -542,10 +542,10 @@ class LabelsManager {
         const brand = this.truncateText(product.brand, 15);
         const name = this.truncateText(product.name, 20);
         const country = this.truncateText(product.country, 60);
-        const vitole = this.truncateText(product.vitole, 20);
-        const cape = this.truncateText(product.cape || 'N/A', 20);
-        const sousCape = this.truncateText(product.sousCape || 'N/A', 20);
-        const tripe = this.truncateText(product.tripe || 'N/A', 40);
+        const vitole = this.truncateText(product.vitole, 40);
+        const cape = this.truncateText(product.cape || 'N/A', 40);
+        const sousCape = this.truncateText(product.sousCape || 'N/A', 40);
+        const tripe = this.truncateText(product.tripe || 'N/A', 60);
         const formattedPrice = product.price.toFixed(2);
         
         // Générer le HTML de l'étoile pour indiquer la force
